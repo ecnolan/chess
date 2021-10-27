@@ -14,7 +14,7 @@ data['WhiteElo'] = data['WhiteElo'].replace(['?'],0)
 data['WhiteElo'] = data['WhiteElo'].astype(float)
 
 # Create filtered dataset for games in which winner elo > 2000
-elo = data[data['WhiteElo'] > 2000]
+elo = data[data['WhiteElo'] > 1600]
 
 # Creating new dataset with just selected columns
 vars = {'White','Black','Result'}
@@ -35,4 +35,4 @@ weight = elo_filtered['winner_raw']
 g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
 adj = nx.adjacency_matrix(g)
 
-
+print(nx.info(g))
