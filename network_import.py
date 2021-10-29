@@ -2,7 +2,7 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 
-data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7],low_memory=False)
+data = pd.read_csv('chess-data.csv',low_memory=False)
 
 # Lol I forgot what this was
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -22,8 +22,7 @@ elo_filtered = elo[vars]
 
 # Creating new column with boolean value for (white = winner). I see how I can make 
 # this shorter but I can't be bothered to do it right now.
-elo_filtered['weight'] = elo_filtered['Result'] == '1-0'
-elo_filtered['weight'] = elo_filtered['weight'].astype(int)
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
 elo_filtered = elo_filtered.drop(columns=['Result'])
 elo_filtered = elo_filtered.reset_index()
 elo_filtered = elo_filtered.drop(columns=['index'])
