@@ -48,14 +48,18 @@ def SimpleEvent(rowdata):
     """ alter the row data to be labeled with a simplified version of the event type"""
     # index 4 contains the event type as a string
     event = rowdata[4]
+    if "Tournament" in event:
+        rowdata[4] = "Tournament "
+    else:
+        rowdata[4] = ""
     if "Blitz" in event:
-        rowdata[4] = "Blitz"
+        rowdata[4] += "Blitz"
         # print("Blitz")
     elif "Bullet" in event:
-        rowdata[4] = "Bullet"
+        rowdata[4] += "Bullet"
         # print('Bullet')
     elif "Classical" in event:
-        rowdata[4] = "Classical"
+        rowdata[4] += "Classical"
     else:
         print("none: ", event)
     return rowdata
