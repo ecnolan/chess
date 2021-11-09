@@ -17,7 +17,7 @@ CSVNAME = "chess-data2.csv"
 ELOSNAME = "playerelo.csv"
 # source is white, target is black
 COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination"]
-MINELO = 1800
+MINELO = 2000
 ELODICT = {}
 BUCKETSIZE = 40
 

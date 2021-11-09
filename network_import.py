@@ -1,6 +1,7 @@
 import networkx as nx
 import pandas as pd
 import numpy as np
+import csv
 
 # Lol I forgot what this was
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -57,8 +58,26 @@ blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target
 class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
 corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
 
-# Generate adjacency matrix CSVs
-pd.DataFrame.sparse.from_spmatrix(nx.adjacency_matrix(bullet_g)).to_csv('Rated_Bullet_Adj.csv',index = True)
-pd.DataFrame.sparse.from_spmatrix(nx.adjacency_matrix(blitz_g)).to_csv('Rated_Blitz_Adj.csv',index = True)
-pd.DataFrame.sparse.from_spmatrix(nx.adjacency_matrix(class_g)).to_csv('Rated_Classic_Adj.csv',index = True)
-pd.DataFrame.sparse.from_spmatrix(nx.adjacency_matrix(corr_g)).to_csv('Rated_Correspondence_Adj.csv',index = True)
+
+
+# Write CSV files for Gephi
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+
+
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+# Valentin's playground
+col_val = elo_filtered[['White','Black']].values.ravel()
+unique_values =  pd.unique(col_val)
+win_rate = np.choose(elo_filtered['weight'], [elo_filtered['White'], elo_filtered['Black']]).value_counts().div(elo_filtered[['White', 'Black']].stack().value_counts()).fillna(0)
+
+elo_list = pd.read_csv('playerelo.csv')
