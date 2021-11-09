@@ -63,17 +63,6 @@ def main():
     """ The main function. """
     rows = grabrows(CSVNAME)
     sortevent(rows)
-    # allevents = [[], [], [], [], [], [], []]
-    # eventtypes = ['d', 'd', 'd', 'd']
-    # for row in ['a', 'b', 'c', 'd', 'e', 'f']:
-    #     if eventtypes[0] in row:
-    #         allevents[0].append(row)
-    #     else:
-    #         for i in range(1,4):
-    #             if eventtypes[i] in row:
-    #                 allevents[i].append(row)
-    #                 break
-    # print(allevents)
 
 if __name__ == '__main__':
     main()
