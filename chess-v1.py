@@ -17,7 +17,7 @@ CSVNAME = "chess-data2.csv"
 ELOSNAME = "playerelo.csv"
 # source is white, target is black
 COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination"]
-MINELO = 2080
+MINELO = 1800
 ELODICT = {}
 BUCKETSIZE = 40
 
@@ -60,6 +60,8 @@ def SimpleEvent(rowdata):
         # print('Bullet')
     elif "Classical" in event:
         rowdata[4] += "Classical"
+    elif "Correspondence" in event:
+        rowdata[4] += "Correspondence"
     else:
         print("none: ", event)
     return rowdata

@@ -31,7 +31,7 @@ def sortevent(rows):
     """ for each row, add row to event-based list. Write list to CSV """
     # goal: nested list. Contains four lists, each list contains rows
     # [[rows of type 1] [rows of type 2] [ rows of type 3] ... ]
-    eventtypes = ["tournament", "Blitz", "Bullet", "Classical"]
+    eventtypes = ["tournament", "Blitz", "Bullet", "Classical", "Correspondence"]
     # ie allevents[0] = list containing rows of tournament event data
     allevents = []
     for _ in eventtypes:
