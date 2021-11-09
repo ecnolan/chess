@@ -18,6 +18,10 @@ ELOSNAME = "playerelo.csv"
 # source is white, target is black
 COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination"]
 MINELO = 2000
+<<<<<<< HEAD
+=======
+# ELOSTR = ""
+>>>>>>> 2faf399ebf3d03b7402c42e97fd1edcd6c09fa24
 ELODICT = {}
 BUCKETSIZE = 40
 
