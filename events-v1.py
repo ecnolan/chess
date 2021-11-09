@@ -18,7 +18,7 @@ ELOSNAME = "playerelo.csv"
 ELODICT = {}
 FILESMADE = []
 # source is white, target is black
-COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination"]
+COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination", "Result"]
 BUCKETSIZE = 40
 
 

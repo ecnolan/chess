@@ -16,7 +16,7 @@ from converter.pgn_data import PGNData
 CSVNAME = "chess-data2.csv"
 ELOSNAME = "playerelo.csv"
 # source is white, target is black
-COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination"]
+COLNAMES = ["Source", "Target", "WhiteElo", "BlackElo", "Event", "Opening", "Termination", "Result"]
 MINELO = 2000
 # ELOSTR = ""
 ELODICT = {}
@@ -28,7 +28,7 @@ def addcolnames(file, writer, lines):
 
 def adddata(file, writer, lines):
     rowdict = {}
-    categories = ["[White", "[Black", "[WhiteElo", "[BlackElo", "[Event", "[Opening", "[Termination"]
+    categories = ["[White", "[Black", "[WhiteElo", "[BlackElo", "[Event", "[Opening", "[Termination", "[Result"]
     for cat in categories:
         rowdict[cat] = ""
     for line in lines:
