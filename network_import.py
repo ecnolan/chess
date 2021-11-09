@@ -7,7 +7,7 @@ import csv
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # Import dataset and clear missing elo values
-data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+data = pd.read_csv('chess-data2.csv',low_memory=False)
 data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
 data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
 
@@ -22,7 +22,7 @@ game_filtered = elo[~elo["Event"].str.contains("https")]
 
 
 # Creating new dataset with just selected columns
-vars = {'Event','White','Black','Result'}
+vars = {'Event','Source','Target','Result'}
 elo_filtered = game_filtered[vars]
 
 # Creating new column with boolean value for (white = winner). I see how I can make 
@@ -33,7 +33,7 @@ elo_filtered = elo_filtered.reset_index()
 elo_filtered = elo_filtered.drop(columns=['index'])
 
 # Create graph and adjacency matrix in NetworkX
-g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='Source',target='Target',create_using=nx.DiGraph)
 adj = nx.adjacency_matrix(g)
 
 
@@ -53,18 +53,18 @@ degree_sort.head(10)
 
 
 # Different graphs for different game types
-bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
-blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
-class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
-corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='Source',target='Target',create_using=nx.DiGraph)
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='Source',target='Target',create_using=nx.DiGraph)
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='Source',target='Target',create_using=nx.DiGraph)
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='Source',target='Target',create_using=nx.DiGraph)
 
 
 
 # Write CSV files for Gephi
-bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
-blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
-class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
-corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+bullet_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+blitz_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+class_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+corr_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
 
 
 bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
@@ -76,8 +76,13 @@ corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
 
 
 # Valentin's playground
-col_val = elo_filtered[['White','Black']].values.ravel()
+col_val = elo_filtered[['Source','Target']].values.ravel()
 unique_values =  pd.unique(col_val)
-win_rate = np.choose(elo_filtered['weight'], [elo_filtered['White'], elo_filtered['Black']]).value_counts().div(elo_filtered[['White', 'Black']].stack().value_counts()).fillna(0)
+win_rate = np.choose(elo_filtered['weight'], [elo_filtered['Source'], elo_filtered['Target']]).value_counts().div(elo_filtered[['Source', 'Target']].stack().value_counts()).fillna(0)
 
 elo_list = pd.read_csv('playerelo.csv')
+
+
+# print("Year assortativity:", nx.attribute_assortativity_coefficient(student_graph, "year"))
+
+# print("Modularity by year:", nx_comm.modularity(student_graph, communities))
