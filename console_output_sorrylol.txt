@@ -1,0 +1,5119 @@
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered = elo_filtered.drop(columns=['Result'])
+31
+elo_filtered = elo_filtered.reset_index()
+32
+elo_filtered = elo_filtered.drop(columns=['index'])
+33
+​
+34
+# Create graph and adjacency matrix in NetworkX
+35
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+36
+adj = nx.adjacency_matrix(g)
+37
+​
+38
+​
+39
+​
+40
+# Different dataframes for different game types
+41
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+42
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+43
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+44
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+45
+​
+46
+​
+47
+​
+48
+# Created dataframe of nodes sorted by degree
+49
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+50
+degree_sort = pd.DataFrame(degree_sort)
+51
+degree_sort.head(10)
+52
+​
+53
+​
+54
+# Different graphs for different game types
+55
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+56
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+​
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+bullet_df.head()
+
+
+
+
+
+
+Event
+Black
+White
+weight
+0
+Rated Bullet game
+iji2002mx
+paquetorro
+1
+7
+Rated Bullet game
+Daradeka
+FifhtShield
+1
+14
+Rated Bullet game
+hamed77
+Anon-Revenge-Date
+0
+20
+Rated Bullet game
+barradepan
+FUELATRON
+0
+23
+Rated Bullet game
+joxida
+mrk
+1
+
+
+
+
+
+
+
+
+
+
+1
+bullet_df['White','Black','weight'].to_csv('bullet.csv')
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3360             try:
+-> 3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+KeyError: ('White', 'Black', 'weight')
+
+The above exception was the direct cause of the following exception:
+
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1262298118.py in <module>
+----> 1 bullet_df['White','Black','weight'].to_csv('bullet.csv')
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3456             if self.columns.nlevels > 1:
+   3457                 return self._getitem_multilevel(key)
+-> 3458             indexer = self.columns.get_loc(key)
+   3459             if is_integer(indexer):
+   3460                 indexer = [indexer]
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+-> 3363                 raise KeyError(key) from err
+   3364 
+   3365         if is_scalar(key) and isna(key) and not self.hasnans:
+
+KeyError: ('White', 'Black', 'weight')
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df['White','Black','weight'])
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3360             try:
+-> 3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+KeyError: ('White', 'Black', 'weight')
+
+The above exception was the direct cause of the following exception:
+
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1332016394.py in <module>
+----> 1 print(bullet_df['White','Black','weight'])
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3456             if self.columns.nlevels > 1:
+   3457                 return self._getitem_multilevel(key)
+-> 3458             indexer = self.columns.get_loc(key)
+   3459             if is_integer(indexer):
+   3460                 indexer = [indexer]
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+-> 3363                 raise KeyError(key) from err
+   3364 
+   3365         if is_scalar(key) and isna(key) and not self.hasnans:
+
+KeyError: ('White', 'Black', 'weight')
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df['Black','White','weight'])
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3360             try:
+-> 3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+KeyError: ('Black', 'White', 'weight')
+
+The above exception was the direct cause of the following exception:
+
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/3010046472.py in <module>
+----> 1 print(bullet_df['Black','White','weight'])
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3456             if self.columns.nlevels > 1:
+   3457                 return self._getitem_multilevel(key)
+-> 3458             indexer = self.columns.get_loc(key)
+   3459             if is_integer(indexer):
+   3460                 indexer = [indexer]
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+-> 3363                 raise KeyError(key) from err
+   3364 
+   3365         if is_scalar(key) and isna(key) and not self.hasnans:
+
+KeyError: ('Black', 'White', 'weight')
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df["White"])
+
+
+
+
+
+0                paquetorro
+7               FifhtShield
+14        Anon-Revenge-Date
+20                FUELATRON
+23                      mrk
+                ...        
+500803               diegor
+500805              Vicious
+500806         nichiren1967
+500810                ujura
+500811            espinacla
+Name: White, Length: 177863, dtype: object
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df["White","Black"])
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3360             try:
+-> 3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+KeyError: ('White', 'Black')
+
+The above exception was the direct cause of the following exception:
+
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/169011290.py in <module>
+----> 1 print(bullet_df["White","Black"])
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3456             if self.columns.nlevels > 1:
+   3457                 return self._getitem_multilevel(key)
+-> 3458             indexer = self.columns.get_loc(key)
+   3459             if is_integer(indexer):
+   3460                 indexer = [indexer]
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+-> 3363                 raise KeyError(key) from err
+   3364 
+   3365         if is_scalar(key) and isna(key) and not self.hasnans:
+
+KeyError: ('White', 'Black')
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df[("White","Black")])
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3360             try:
+-> 3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+KeyError: ('White', 'Black')
+
+The above exception was the direct cause of the following exception:
+
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/3541118247.py in <module>
+----> 1 print(bullet_df[("White","Black")])
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3456             if self.columns.nlevels > 1:
+   3457                 return self._getitem_multilevel(key)
+-> 3458             indexer = self.columns.get_loc(key)
+   3459             if is_integer(indexer):
+   3460                 indexer = [indexer]
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+-> 3363                 raise KeyError(key) from err
+   3364 
+   3365         if is_scalar(key) and isna(key) and not self.hasnans:
+
+KeyError: ('White', 'Black')
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df[("White","weight")])
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3360             try:
+-> 3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+/usr/local/lib/python3.9/site-packages/pandas/_libs/index.pyx in pandas._libs.index.IndexEngine.get_loc()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+pandas/_libs/hashtable_class_helper.pxi in pandas._libs.hashtable.PyObjectHashTable.get_item()
+
+KeyError: ('White', 'weight')
+
+The above exception was the direct cause of the following exception:
+
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1554465194.py in <module>
+----> 1 print(bullet_df[("White","weight")])
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3456             if self.columns.nlevels > 1:
+   3457                 return self._getitem_multilevel(key)
+-> 3458             indexer = self.columns.get_loc(key)
+   3459             if is_integer(indexer):
+   3460                 indexer = [indexer]
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexes/base.py in get_loc(self, key, method, tolerance)
+   3361                 return self._engine.get_loc(casted_key)
+   3362             except KeyError as err:
+-> 3363                 raise KeyError(key) from err
+   3364 
+   3365         if is_scalar(key) and isna(key) and not self.hasnans:
+
+KeyError: ('White', 'weight')
+
+
+
+
+
+
+
+
+
+
+1
+print(bullet_df[["White","weight"]])
+
+
+
+
+
+                    White  weight
+0              paquetorro       1
+7             FifhtShield       1
+14      Anon-Revenge-Date       0
+20              FUELATRON       0
+23                    mrk       1
+...                   ...     ...
+500803             diegor       0
+500805            Vicious       0
+500806       nichiren1967       0
+500810              ujura       1
+500811          espinacla       0
+
+[177863 rows x 2 columns]
+
+
+
+
+
+
+
+
+
+
+1
+bullet_df[["White","weight","Black"]].to_csv('bullet.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+bullet_df[["White","Black","weight"]].to_csv('bullet.csv', index = False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered = elo_filtered.drop(columns=['Result'])
+31
+elo_filtered = elo_filtered.reset_index()
+32
+elo_filtered = elo_filtered.drop(columns=['index'])
+33
+​
+34
+# Create graph and adjacency matrix in NetworkX
+35
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+36
+adj = nx.adjacency_matrix(g)
+37
+​
+38
+​
+39
+​
+40
+# Different dataframes for different game types
+41
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+42
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+43
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+44
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+45
+​
+46
+​
+47
+​
+48
+# Created dataframe of nodes sorted by degree
+49
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+50
+degree_sort = pd.DataFrame(degree_sort)
+51
+degree_sort.head(10)
+52
+​
+53
+​
+54
+# Different graphs for different game types
+55
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+56
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+​
+60
+​
+61
+# Write CSV files for Gephi
+62
+bullet_df[["White","Black","weight"]].to_csv('bullet.csv', index = False)
+63
+blitz_df[["White","Black","weight"]].to_csv('blitz.csv', index = False)
+64
+class_df[["White","Black","weight"]].to_csv('class.csv', index = False)
+65
+corr_df[["White","Black","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered = elo_filtered.drop(columns=['Result'])
+31
+elo_filtered = elo_filtered.reset_index()
+32
+elo_filtered = elo_filtered.drop(columns=['index'])
+33
+​
+34
+# Create graph and adjacency matrix in NetworkX
+35
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+36
+adj = nx.adjacency_matrix(g)
+37
+​
+38
+​
+39
+​
+40
+# Different dataframes for different game types
+41
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+42
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+43
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+44
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+45
+​
+46
+​
+47
+​
+48
+# Created dataframe of nodes sorted by degree
+49
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+50
+degree_sort = pd.DataFrame(degree_sort)
+51
+degree_sort.head(10)
+52
+​
+53
+​
+54
+# Different graphs for different game types
+55
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+56
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+​
+60
+​
+61
+​
+62
+# Write CSV files for Gephi
+63
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Targe'})
+64
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Targe'})
+65
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Targe'})
+66
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Targe'})
+67
+​
+68
+​
+69
+bullet_df[["White","Black","weight"]].to_csv('bullet.csv', index = False)
+70
+blitz_df[["White","Black","weight"]].to_csv('blitz.csv', index = False)
+71
+class_df[["White","Black","weight"]].to_csv('class.csv', index = False)
+72
+corr_df[["White","Black","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/659965635.py in <module>
+     67 
+     68 
+---> 69 bullet_df[["White","Black","weight"]].to_csv('bullet.csv', index = False)
+     70 blitz_df[["White","Black","weight"]].to_csv('blitz.csv', index = False)
+     71 class_df[["White","Black","weight"]].to_csv('class.csv', index = False)
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3462             if is_iterator(key):
+   3463                 key = list(key)
+-> 3464             indexer = self.loc._get_listlike_indexer(key, axis=1)[1]
+   3465 
+   3466         # take() does not accept boolean indexers
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexing.py in _get_listlike_indexer(self, key, axis)
+   1312             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
+   1313 
+-> 1314         self._validate_read_indexer(keyarr, indexer, axis)
+   1315 
+   1316         if needs_i8_conversion(ax.dtype) or isinstance(
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexing.py in _validate_read_indexer(self, key, indexer, axis)
+   1375 
+   1376             not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
+-> 1377             raise KeyError(f"{not_found} not in index")
+   1378 
+   1379 
+
+KeyError: "['White', 'Black'] not in index"
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered = elo_filtered.drop(columns=['Result'])
+31
+elo_filtered = elo_filtered.reset_index()
+32
+elo_filtered = elo_filtered.drop(columns=['index'])
+33
+​
+34
+# Create graph and adjacency matrix in NetworkX
+35
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+36
+adj = nx.adjacency_matrix(g)
+37
+​
+38
+​
+39
+​
+40
+# Different dataframes for different game types
+41
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+42
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+43
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+44
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+45
+​
+46
+​
+47
+​
+48
+# Created dataframe of nodes sorted by degree
+49
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+50
+degree_sort = pd.DataFrame(degree_sort)
+51
+degree_sort.head(10)
+52
+​
+53
+​
+54
+# Different graphs for different game types
+55
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+56
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+​
+60
+​
+61
+​
+62
+# Write CSV files for Gephi
+63
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+64
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+65
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+66
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+67
+​
+68
+​
+69
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+70
+blitz_df[["Source","Target","weight""]].to_csv('blitz.csv', index = False)
+71
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+72
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+  File "/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1334702646.py", line 70
+    blitz_df[["Source","Target","weight""]].to_csv('blitz.csv', index = False)
+                                                                              ^
+SyntaxError: EOL while scanning string literal
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered = elo_filtered.drop(columns=['Result'])
+31
+elo_filtered = elo_filtered.reset_index()
+32
+elo_filtered = elo_filtered.drop(columns=['index'])
+33
+​
+34
+# Create graph and adjacency matrix in NetworkX
+35
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+36
+adj = nx.adjacency_matrix(g)
+37
+​
+38
+​
+39
+​
+40
+# Different dataframes for different game types
+41
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+42
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+43
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+44
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+45
+​
+46
+​
+47
+​
+48
+# Created dataframe of nodes sorted by degree
+49
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+50
+degree_sort = pd.DataFrame(degree_sort)
+51
+degree_sort.head(10)
+52
+​
+53
+​
+54
+# Different graphs for different game types
+55
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+56
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+​
+60
+​
+61
+​
+62
+# Write CSV files for Gephi
+63
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+64
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+65
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+66
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+67
+​
+68
+​
+69
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+70
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+71
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+72
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+chess-v1.py
+
+
+
+
+
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/2585111244.py in <module>
+----> 1 chess-v1.py
+
+NameError: name 'chess' is not defined
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered = elo_filtered.drop(columns=['Result'])
+31
+elo_filtered = elo_filtered.reset_index()
+32
+elo_filtered = elo_filtered.drop(columns=['index'])
+33
+​
+34
+# Create graph and adjacency matrix in NetworkX
+35
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+36
+adj = nx.adjacency_matrix(g)
+37
+​
+38
+​
+39
+​
+40
+# Different dataframes for different game types
+41
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+42
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+43
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+44
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+45
+​
+46
+​
+47
+​
+48
+# Created dataframe of nodes sorted by degree
+49
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+50
+degree_sort = pd.DataFrame(degree_sort)
+51
+degree_sort.head(10)
+52
+​
+53
+​
+54
+# Different graphs for different game types
+55
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+56
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+​
+60
+​
+61
+​
+62
+# Write CSV files for Gephi
+63
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+64
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+65
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+66
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+67
+​
+68
+​
+69
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+70
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+71
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+72
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(blitz_g)
+
+
+
+
+
+'DiGraph with 11342 nodes and 141215 edges'
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+elo_filtered['weight'].replace(to_replace=0,value=-1)
+31
+elo_filtered = elo_filtered.drop(columns=['Result'])
+32
+elo_filtered = elo_filtered.reset_index()
+33
+elo_filtered = elo_filtered.drop(columns=['index'])
+34
+​
+35
+# Create graph and adjacency matrix in NetworkX
+36
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+37
+adj = nx.adjacency_matrix(g)
+38
+​
+39
+​
+40
+​
+41
+# Different dataframes for different game types
+42
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+43
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+44
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+45
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+46
+​
+47
+​
+48
+​
+49
+# Created dataframe of nodes sorted by degree
+50
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+51
+degree_sort = pd.DataFrame(degree_sort)
+52
+degree_sort.head(10)
+53
+​
+54
+​
+55
+# Different graphs for different game types
+56
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+60
+​
+61
+​
+62
+​
+63
+# Write CSV files for Gephi
+64
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+65
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+66
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+67
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+68
+​
+69
+​
+70
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+71
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+72
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+73
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+bullet_df.head(10)
+
+
+
+
+
+
+Event
+Target
+Source
+weight
+0
+Rated Bullet game
+iji2002mx
+paquetorro
+1
+7
+Rated Bullet game
+Daradeka
+FifhtShield
+1
+14
+Rated Bullet game
+hamed77
+Anon-Revenge-Date
+0
+20
+Rated Bullet game
+barradepan
+FUELATRON
+0
+23
+Rated Bullet game
+joxida
+mrk
+1
+24
+Rated Bullet game
+colfax
+iji2002mx
+1
+25
+Rated Bullet game
+jlfs
+otstavnik60
+0
+26
+Rated Bullet game
+VEGETAL
+paquetorro
+0
+27
+Rated Bullet game
+FifhtShield
+Daradeka
+0
+28
+Rated Bullet game
+lahvan
+wan_
+1
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+​
+5
+# Lol I forgot what this was
+6
+pd.options.mode.chained_assignment = None  # default='warn'
+7
+​
+8
+# Import dataset and clear missing elo values
+9
+data = pd.read_csv('chess-data.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+10
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+11
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+12
+​
+13
+​
+14
+# Change values to float from string
+15
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+16
+​
+17
+# Create filtered dataset for games in which winner elo > 2000
+18
+elo = data[data['WhiteElo'] > 1600]
+19
+game_filtered = elo[~elo["Event"].str.contains("https")]
+20
+​
+21
+​
+22
+​
+23
+# Creating new dataset with just selected columns
+24
+vars = {'Event','White','Black','Result'}
+25
+elo_filtered = game_filtered[vars]
+26
+​
+27
+# Creating new column with boolean value for (white = winner). I see how I can make 
+28
+# this shorter but I can't be bothered to do it right now.
+29
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+30
+pd.elo_filtered['weight'].replace(to_replace=0,value=-1)
+31
+elo_filtered = elo_filtered.drop(columns=['Result'])
+32
+elo_filtered = elo_filtered.reset_index()
+33
+elo_filtered = elo_filtered.drop(columns=['index'])
+34
+​
+35
+# Create graph and adjacency matrix in NetworkX
+36
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+37
+adj = nx.adjacency_matrix(g)
+38
+​
+39
+​
+40
+​
+41
+# Different dataframes for different game types
+42
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+43
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+44
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+45
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+46
+​
+47
+​
+48
+​
+49
+# Created dataframe of nodes sorted by degree
+50
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+51
+degree_sort = pd.DataFrame(degree_sort)
+52
+degree_sort.head(10)
+53
+​
+54
+​
+55
+# Different graphs for different game types
+56
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+60
+​
+61
+​
+62
+​
+63
+# Write CSV files for Gephi
+64
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+65
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+66
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+67
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+68
+​
+69
+​
+70
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+71
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+72
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+73
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+
+
+
+
+
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/2762114042.py in <module>
+     28 # this shorter but I can't be bothered to do it right now.
+     29 elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+---> 30 pd.elo_filtered['weight'].replace(to_replace=0,value=-1)
+     31 elo_filtered = elo_filtered.drop(columns=['Result'])
+     32 elo_filtered = elo_filtered.reset_index()
+
+/usr/local/lib/python3.9/site-packages/pandas/__init__.py in __getattr__(name)
+    242         return _SparseArray
+    243 
+--> 244     raise AttributeError(f"module 'pandas' has no attribute '{name}'")
+    245 
+    246 
+
+AttributeError: module 'pandas' has no attribute 'elo_filtered'
+
+
+
+
+
+
+
+
+
+
+1
+raw = pd.read_csv('chess-data2.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+raw.describe()
+
+
+
+
+
+
+WhiteElo
+BlackElo
+count
+122349.000000
+122349.000000
+mean
+1966.092432
+1966.292352
+std
+137.839314
+138.064210
+min
+1801.000000
+1801.000000
+25%
+1862.000000
+1862.000000
+50%
+1931.000000
+1931.000000
+75%
+2032.000000
+2033.000000
+max
+2803.000000
+2805.000000
+
+
+
+
+
+
+
+
+
+
+1
+col_vals = elo_filtered[['White','Black']].values.ravel()
+2
+unique_values =  pd.unique(col_val)
+3
+​
+
+
+
+
+
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/2969969149.py in <module>
+      1 col_vals = elo_filtered[['White','Black']].values.ravel()
+----> 2 unique_values =  pd.unique(col_val)
+
+NameError: name 'col_val' is not defined
+
+
+
+
+
+
+
+
+
+
+1
+col_val = elo_filtered[['White','Black']].values.ravel()
+2
+unique_values =  pd.unique(col_val)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+pd.describe(unique_values)
+
+
+
+
+
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/407188262.py in <module>
+----> 1 pd.describe(unique_values)
+
+/usr/local/lib/python3.9/site-packages/pandas/__init__.py in __getattr__(name)
+    242         return _SparseArray
+    243 
+--> 244     raise AttributeError(f"module 'pandas' has no attribute '{name}'")
+    245 
+    246 
+
+AttributeError: module 'pandas' has no attribute 'describe'
+
+
+
+
+
+
+
+
+
+
+1
+unique_values.describe()
+
+
+
+
+
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1904899695.py in <module>
+----> 1 unique_values.describe()
+
+AttributeError: 'numpy.ndarray' object has no attribute 'describe'
+
+
+
+
+
+
+
+
+
+
+1
+unique_values.head()
+
+
+
+
+
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/3072273005.py in <module>
+----> 1 unique_values.head()
+
+AttributeError: 'numpy.ndarray' object has no attribute 'head'
+
+
+
+
+
+
+
+
+
+
+1
+type(unique_values)
+
+
+
+
+
+numpy.ndarray
+
+
+
+
+
+
+
+
+
+
+1
+unique values = pd.DataFrame(unique_values)
+
+
+
+
+
+  File "/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/2090468372.py", line 1
+    unique values = pd.DataFrame(unique_values)
+           ^
+SyntaxError: invalid syntax
+
+
+
+
+
+
+
+
+
+
+1
+unique_values = pd.DataFrame(unique_values)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+type(unique_values)
+
+
+
+
+
+pandas.core.frame.DataFrame
+
+
+
+
+
+
+
+
+
+
+1
+unique_values.head()
+
+
+
+
+
+
+0
+0
+paquetorro
+1
+iji2002mx
+2
+dees_ter
+3
+ahmetrasay
+4
+Spartakas
+
+
+
+
+
+
+
+
+
+
+1
+unique_values.describe()
+
+
+
+
+
+
+0
+count
+21226
+unique
+21226
+top
+paquetorro
+freq
+1
+
+
+
+
+
+
+
+
+
+
+1
+col_val = elo_filtered[['White','Black']].values.ravel()
+2
+unique_values =  pd.unique(col_val)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+import numpy as np
+2
+np.choose(elo_filtered['weight'], [elo_filtered['White'], elo_filtered['Black']]).value_counts().div(elo_filtered[['White', 'Black']].stack().value_counts()).fillna(0)
+
+
+
+
+
+-----------0           0.00000
+----bulletchess----    0.50000
+---MaTTsoonN13         0.50000
+---Nabil---            1.00000
+---___---              1.00000
+                        ...   
+zzzxx8xxzzz            0.59000
+zzzxxsaq               1.00000
+zzzxxxx                1.00000
+zzzzz02                0.49026
+zzzzz_                 0.00000
+Length: 21226, dtype: float64
+
+
+
+
+
+
+
+
+
+
+1
+win_rate = np.choose(elo_filtered['weight'], [elo_filtered['White'], elo_filtered['Black']]).value_counts().div(elo_filtered[['White', 'Black']].stack().value_counts()).fillna(0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+win_rate
+
+
+
+
+
+-----------0           0.00000
+----bulletchess----    0.50000
+---MaTTsoonN13         0.50000
+---Nabil---            1.00000
+---___---              1.00000
+                        ...   
+zzzxx8xxzzz            0.59000
+zzzxxsaq               1.00000
+zzzxxxx                1.00000
+zzzzz02                0.49026
+zzzzz_                 0.00000
+Length: 21226, dtype: float64
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = pd.read_csv('playerelo.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+elo_list.head(10)
+
+
+
+
+
+
+ID
+elo
+bucket
+0
+dees_ter
+1877.250000
+1840.0
+1
+ahmetrasay
+1864.026316
+1840.0
+2
+eviltwin
+1919.525180
+1880.0
+3
+branquignol
+1868.250000
+1840.0
+4
+zuriko
+2004.476190
+2000.0
+5
+bigorneau
+1961.931034
+1960.0
+6
+MastroBecalino
+1827.031250
+1800.0
+7
+raul50
+1947.161290
+1920.0
+8
+kalitka_man
+1934.708333
+1920.0
+9
+ZeruHmyz
+2179.376744
+2160.0
+
+
+
+
+
+
+
+
+
+
+1
+import csv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = pd.read_csv('playerelo.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+elo_list.describe()
+
+
+
+
+
+
+elo
+bucket
+count
+6062.000000
+6062.000000
+mean
+1913.160850
+1893.724843
+std
+102.391566
+101.946485
+min
+1801.000000
+1800.000000
+25%
+1839.166667
+1800.000000
+50%
+1885.514706
+1880.000000
+75%
+1956.066035
+1920.000000
+max
+2610.000000
+2600.000000
+
+
+
+
+
+
+
+
+
+
+1
+win_rate.describe()
+
+
+
+
+
+count    21226.000000
+mean         0.632080
+std          0.308812
+min          0.000000
+25%          0.434805
+50%          0.615385
+75%          1.000000
+max          1.000000
+dtype: float64
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = pd.read_csv('playerelo.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = pd.read_csv('playerelo.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+win_rate.describe()
+
+
+
+
+
+count    21226.000000
+mean         0.632080
+std          0.308812
+min          0.000000
+25%          0.434805
+50%          0.615385
+75%          1.000000
+max          1.000000
+dtype: float64
+
+
+
+
+
+
+
+
+
+
+1
+elo_list.describe()
+
+
+
+
+
+
+elo
+bucket
+count
+1374.000000
+1374.000000
+mean
+2091.212365
+2071.935953
+std
+92.214763
+91.160082
+min
+2001.000000
+2000.000000
+25%
+2029.000000
+2000.000000
+50%
+2062.000000
+2040.000000
+75%
+2120.900000
+2120.000000
+max
+2613.493902
+2600.000000
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+import csv
+5
+​
+6
+# Lol I forgot what this was
+7
+pd.options.mode.chained_assignment = None  # default='warn'
+8
+​
+9
+# Import dataset and clear missing elo values
+10
+data = pd.read_csv('chess-data2.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+11
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+12
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+13
+​
+14
+​
+15
+# Change values to float from string
+16
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+17
+​
+18
+# Create filtered dataset for games in which winner elo > 2000
+19
+elo = data[data['WhiteElo'] > 1600]
+20
+game_filtered = elo[~elo["Event"].str.contains("https")]
+21
+​
+22
+​
+23
+​
+24
+# Creating new dataset with just selected columns
+25
+vars = {'Event','White','Black','Result'}
+26
+elo_filtered = game_filtered[vars]
+27
+​
+28
+# Creating new column with boolean value for (white = winner). I see how I can make 
+29
+# this shorter but I can't be bothered to do it right now.
+30
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+31
+elo_filtered = elo_filtered.drop(columns=['Result'])
+32
+elo_filtered = elo_filtered.reset_index()
+33
+elo_filtered = elo_filtered.drop(columns=['index'])
+34
+​
+35
+# Create graph and adjacency matrix in NetworkX
+36
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='White',target='Black',create_using=nx.DiGraph)
+37
+adj = nx.adjacency_matrix(g)
+38
+​
+39
+​
+40
+​
+41
+# Different dataframes for different game types
+42
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+43
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+44
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+45
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+46
+​
+47
+​
+48
+​
+49
+# Created dataframe of nodes sorted by degree
+50
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+51
+degree_sort = pd.DataFrame(degree_sort)
+52
+degree_sort.head(10)
+53
+​
+54
+​
+55
+# Different graphs for different game types
+56
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='White',target='Black',create_using=nx.DiGraph)
+57
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='White',target='Black',create_using=nx.DiGraph)
+58
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='White',target='Black',create_using=nx.DiGraph)
+59
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='White',target='Black',create_using=nx.DiGraph)
+60
+​
+61
+​
+62
+​
+63
+# Write CSV files for Gephi
+64
+bullet_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+65
+blitz_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+66
+class_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+67
+corr_df = bullet_df.rename(columns={'White': 'Source', 'Black': 'Target'})
+68
+​
+69
+​
+70
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+71
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+72
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+73
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+74
+​
+75
+​
+76
+​
+77
+​
+78
+# Valentin's playground
+79
+col_val = elo_filtered[['White','Black']].values.ravel()
+80
+unique_values =  pd.unique(col_val)
+81
+win_rate = np.choose(elo_filtered['weight'], [elo_filtered['White'], elo_filtered['Black']]).value_counts().div(elo_filtered[['White', 'Black']].stack().value_counts()).fillna(0)
+82
+​
+83
+elo_list = pd.read_csv('playerelo.csv')
+
+
+
+
+
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/4279039441.py in <module>
+      8 
+      9 # Import dataset and clear missing elo values
+---> 10 data = pd.read_csv('chess-data2.csv',usecols=[0,2,3,4,7,8],low_memory=False)
+     11 data['WhiteElo'] = data['WhiteElo'].replace(['?'],0)
+     12 data['BlackElo'] = data['BlackElo'].replace(['?'],0)
+
+/usr/local/lib/python3.9/site-packages/pandas/util/_decorators.py in wrapper(*args, **kwargs)
+    309                     stacklevel=stacklevel,
+    310                 )
+--> 311             return func(*args, **kwargs)
+    312 
+    313         return wrapper
+
+/usr/local/lib/python3.9/site-packages/pandas/io/parsers/readers.py in read_csv(filepath_or_buffer, sep, delimiter, header, names, index_col, usecols, squeeze, prefix, mangle_dupe_cols, dtype, engine, converters, true_values, false_values, skipinitialspace, skiprows, skipfooter, nrows, na_values, keep_default_na, na_filter, verbose, skip_blank_lines, parse_dates, infer_datetime_format, keep_date_col, date_parser, dayfirst, cache_dates, iterator, chunksize, compression, thousands, decimal, lineterminator, quotechar, quoting, doublequote, escapechar, comment, encoding, encoding_errors, dialect, error_bad_lines, warn_bad_lines, on_bad_lines, delim_whitespace, low_memory, memory_map, float_precision, storage_options)
+    584     kwds.update(kwds_defaults)
+    585 
+--> 586     return _read(filepath_or_buffer, kwds)
+    587 
+    588 
+
+/usr/local/lib/python3.9/site-packages/pandas/io/parsers/readers.py in _read(filepath_or_buffer, kwds)
+    480 
+    481     # Create the parser.
+--> 482     parser = TextFileReader(filepath_or_buffer, **kwds)
+    483 
+    484     if chunksize or iterator:
+
+/usr/local/lib/python3.9/site-packages/pandas/io/parsers/readers.py in __init__(self, f, engine, **kwds)
+    809             self.options["has_index_names"] = kwds["has_index_names"]
+    810 
+--> 811         self._engine = self._make_engine(self.engine)
+    812 
+    813     def close(self):
+
+/usr/local/lib/python3.9/site-packages/pandas/io/parsers/readers.py in _make_engine(self, engine)
+   1038             )
+   1039         # error: Too many arguments for "ParserBase"
+-> 1040         return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
+   1041 
+   1042     def _failover_to_python(self):
+
+/usr/local/lib/python3.9/site-packages/pandas/io/parsers/c_parser_wrapper.py in __init__(self, src, **kwds)
+    148             if len(self.names) < len(usecols):  # type: ignore[has-type]
+    149                 # error: Cannot determine type of 'names'
+--> 150                 self._validate_usecols_names(
+    151                     usecols,
+    152                     self.names,  # type: ignore[has-type]
+
+/usr/local/lib/python3.9/site-packages/pandas/io/parsers/base_parser.py in _validate_usecols_names(self, usecols, names)
+    864         missing = [c for c in usecols if c not in names]
+    865         if len(missing) > 0:
+--> 866             raise ValueError(
+    867                 f"Usecols do not match columns, columns expected but not found: "
+    868                 f"{missing}"
+
+ValueError: Usecols do not match columns, columns expected but not found: [0, 2, 3, 4, 7, 8]
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+import csv
+5
+​
+6
+# Lol I forgot what this was
+7
+pd.options.mode.chained_assignment = None  # default='warn'
+8
+​
+9
+# Import dataset and clear missing elo values
+10
+data = pd.read_csv('chess-data2.csv',low_memory=False)
+11
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+12
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+13
+​
+14
+​
+15
+# Change values to float from string
+16
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+17
+​
+18
+# Create filtered dataset for games in which winner elo > 2000
+19
+elo = data[data['WhiteElo'] > 1600]
+20
+game_filtered = elo[~elo["Event"].str.contains("https")]
+21
+​
+22
+​
+23
+​
+24
+# Creating new dataset with just selected columns
+25
+vars = {'Event','Source','Target','Result'}
+26
+elo_filtered = game_filtered[vars]
+27
+​
+28
+# Creating new column with boolean value for (white = winner). I see how I can make 
+29
+# this shorter but I can't be bothered to do it right now.
+30
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+31
+elo_filtered = elo_filtered.drop(columns=['Result'])
+32
+elo_filtered = elo_filtered.reset_index()
+33
+elo_filtered = elo_filtered.drop(columns=['index'])
+34
+​
+35
+# Create graph and adjacency matrix in NetworkX
+36
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='Source',target='Target',create_using=nx.DiGraph)
+37
+adj = nx.adjacency_matrix(g)
+38
+​
+39
+​
+40
+​
+41
+# Different dataframes for different game types
+42
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+43
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+44
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+45
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+46
+​
+47
+​
+48
+​
+49
+# Created dataframe of nodes sorted by degree
+50
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+51
+degree_sort = pd.DataFrame(degree_sort)
+52
+degree_sort.head(10)
+53
+​
+54
+​
+55
+# Different graphs for different game types
+56
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='Source',target='Target',create_using=nx.DiGraph)
+57
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='Source',target='Target',create_using=nx.DiGraph)
+58
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='Source',target='Target',create_using=nx.DiGraph)
+59
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='Source',target='Target',create_using=nx.DiGraph)
+60
+​
+61
+​
+62
+​
+63
+# Write CSV files for Gephi
+64
+bullet_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+65
+blitz_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+66
+class_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+67
+corr_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+68
+​
+69
+​
+70
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+71
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+72
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+73
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+74
+​
+75
+​
+76
+​
+77
+​
+78
+# Valentin's playground
+79
+col_val = elo_filtered[['Source','Target']].values.ravel()
+80
+unique_values =  pd.unique(col_val)
+81
+win_rate = np.choose(elo_filtered['weight'], [elo_filtered['Source'], elo_filtered['Target']]).value_counts().div(elo_filtered[['Source', 'Target']].stack().value_counts()).fillna(0)
+82
+​
+83
+elo_list = pd.read_csv('playerelo.csv')
+
+
+
+
+
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/559013785.py in <module>
+     24 # Creating new dataset with just selected columns
+     25 vars = {'Event','Source','Target','Result'}
+---> 26 elo_filtered = game_filtered[vars]
+     27 
+     28 # Creating new column with boolean value for (white = winner). I see how I can make
+
+/usr/local/lib/python3.9/site-packages/pandas/core/frame.py in __getitem__(self, key)
+   3462             if is_iterator(key):
+   3463                 key = list(key)
+-> 3464             indexer = self.loc._get_listlike_indexer(key, axis=1)[1]
+   3465 
+   3466         # take() does not accept boolean indexers
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexing.py in _get_listlike_indexer(self, key, axis)
+   1312             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
+   1313 
+-> 1314         self._validate_read_indexer(keyarr, indexer, axis)
+   1315 
+   1316         if needs_i8_conversion(ax.dtype) or isinstance(
+
+/usr/local/lib/python3.9/site-packages/pandas/core/indexing.py in _validate_read_indexer(self, key, indexer, axis)
+   1375 
+   1376             not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
+-> 1377             raise KeyError(f"{not_found} not in index")
+   1378 
+   1379 
+
+KeyError: "['Result'] not in index"
+
+
+
+
+
+
+
+
+
+
+1
+import networkx as nx
+2
+import pandas as pd
+3
+import numpy as np
+4
+import csv
+5
+​
+6
+# Lol I forgot what this was
+7
+pd.options.mode.chained_assignment = None  # default='warn'
+8
+​
+9
+# Import dataset and clear missing elo values
+10
+data = pd.read_csv('chess-data2.csv',low_memory=False)
+11
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
+12
+data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+13
+​
+14
+​
+15
+# Change values to float from string
+16
+data['WhiteElo'] = data['WhiteElo'].astype(float)
+17
+​
+18
+# Create filtered dataset for games in which winner elo > 2000
+19
+elo = data[data['WhiteElo'] > 1600]
+20
+game_filtered = elo[~elo["Event"].str.contains("https")]
+21
+​
+22
+​
+23
+​
+24
+# Creating new dataset with just selected columns
+25
+vars = {'Event','Source','Target','Result'}
+26
+elo_filtered = game_filtered[vars]
+27
+​
+28
+# Creating new column with boolean value for (white = winner). I see how I can make 
+29
+# this shorter but I can't be bothered to do it right now.
+30
+elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
+31
+elo_filtered = elo_filtered.drop(columns=['Result'])
+32
+elo_filtered = elo_filtered.reset_index()
+33
+elo_filtered = elo_filtered.drop(columns=['index'])
+34
+​
+35
+# Create graph and adjacency matrix in NetworkX
+36
+g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='Source',target='Target',create_using=nx.DiGraph)
+37
+adj = nx.adjacency_matrix(g)
+38
+​
+39
+​
+40
+​
+41
+# Different dataframes for different game types
+42
+bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
+43
+blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
+44
+class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
+45
+corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+46
+​
+47
+​
+48
+​
+49
+# Created dataframe of nodes sorted by degree
+50
+degree_sort = sorted(g.degree, key=lambda x: x[1], reverse=True)
+51
+degree_sort = pd.DataFrame(degree_sort)
+52
+degree_sort.head(10)
+53
+​
+54
+​
+55
+# Different graphs for different game types
+56
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='Source',target='Target',create_using=nx.DiGraph)
+57
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='Source',target='Target',create_using=nx.DiGraph)
+58
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='Source',target='Target',create_using=nx.DiGraph)
+59
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='Source',target='Target',create_using=nx.DiGraph)
+60
+​
+61
+​
+62
+​
+63
+# Write CSV files for Gephi
+64
+bullet_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+65
+blitz_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+66
+class_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+67
+corr_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
+68
+​
+69
+​
+70
+bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
+71
+blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
+72
+class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
+73
+corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
+74
+​
+75
+​
+76
+​
+77
+​
+78
+# Valentin's playground
+79
+col_val = elo_filtered[['Source','Target']].values.ravel()
+80
+unique_values =  pd.unique(col_val)
+81
+win_rate = np.choose(elo_filtered['weight'], [elo_filtered['Source'], elo_filtered['Target']]).value_counts().div(elo_filtered[['Source', 'Target']].stack().value_counts()).fillna(0)
+82
+​
+83
+elo_list = pd.read_csv('playerelo.csv')
+84
+​
+85
+​
+86
+# print("Year assortativity:", nx.attribute_assortativity_coefficient(student_graph, "year"))
+87
+​
+88
+# print("Modularity by year:", nx_comm.modularity(student_graph, communities))
+89
+​
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+degree_sort.describe()
+
+
+
+
+
+
+1
+count
+1379.000000
+mean
+11.973894
+std
+21.565054
+min
+1.000000
+25%
+1.000000
+50%
+4.000000
+75%
+12.000000
+max
+329.000000
+
+
+
+
+
+
+
+
+
+
+1
+elo_list.describe()
+
+
+
+
+
+
+elo
+bucket
+count
+1372.000000
+1372.000000
+mean
+2091.114600
+2071.836735
+std
+92.273643
+91.211841
+min
+2001.000000
+2000.000000
+25%
+2029.000000
+2000.000000
+50%
+2061.736219
+2040.000000
+75%
+2120.546429
+2120.000000
+max
+2613.493902
+2600.000000
+
+
+
+
+
+
+
+
+
+
+1
+win_rate.describe()
+
+
+
+
+
+count    1379.000000
+mean        0.577881
+std         0.330609
+min         0.000000
+25%         0.388562
+50%         0.568421
+75%         1.000000
+max         1.000000
+dtype: float64
+
+
+
+
+
+
+
+
+
+
+1
+elo_list.head()
+
+
+
+
+
+
+ID
+elo
+bucket
+0
+kalitka_man
+2026.393617
+2000.0
+1
+ZeruHmyz
+2204.858824
+2200.0
+2
+PLATINUM
+2172.416667
+2160.0
+3
+sosisamm
+2053.382653
+2040.0
+4
+JasonVoorhees
+2144.333333
+2120.0
+
+
+
+
+
+
+
+
+
+
+1
+elo_list
+
+
+
+
+
+
+ID
+elo
+bucket
+0
+kalitka_man
+2026.393617
+2000.0
+1
+ZeruHmyz
+2204.858824
+2200.0
+2
+PLATINUM
+2172.416667
+2160.0
+3
+sosisamm
+2053.382653
+2040.0
+4
+JasonVoorhees
+2144.333333
+2120.0
+...
+...
+...
+...
+1367
+yfgtyjnuu1
+2061.500000
+2040.0
+1368
+_babuin_
+2040.000000
+2040.0
+1369
+CEKTAHT_
+2038.000000
+2000.0
+1370
+kabukiman
+2147.000000
+2120.0
+1371
+vaccins
+2071.000000
+2040.0
+1372 rows × 3 columns
+
+
+
+
+
+
+
+
+
+
+1
+result = pd.concat([elo_list,win_rate,axis=1)
+
+
+
+
+
+  File "/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/2653428059.py", line 1
+    result = pd.concat([elo_list,win_rate,axis=1)
+                                              ^
+SyntaxError: invalid syntax
+
+
+
+
+
+
+
+
+
+
+1
+result = pd.concat([elo_list,win_rate],axis=1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+result
+
+
+
+
+
+
+ID
+elo
+bucket
+0
+0
+kalitka_man
+2026.393617
+2000.0
+NaN
+1
+ZeruHmyz
+2204.858824
+2200.0
+NaN
+2
+PLATINUM
+2172.416667
+2160.0
+NaN
+3
+sosisamm
+2053.382653
+2040.0
+NaN
+4
+JasonVoorhees
+2144.333333
+2120.0
+NaN
+...
+...
+...
+...
+...
+zoranz
+NaN
+NaN
+NaN
+0.695652
+zorro2014
+NaN
+NaN
+NaN
+0.571429
+zulo
+NaN
+NaN
+NaN
+0.666667
+zuriko
+NaN
+NaN
+NaN
+0.631579
+zxcvbnmzxcvbnm
+NaN
+NaN
+NaN
+0.846154
+2751 rows × 4 columns
+
+
+
+
+
+
+
+
+
+
+1
+from IPython.display import display, HTML
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+display(result)
+
+
+
+
+
+
+ID
+elo
+bucket
+0
+0
+kalitka_man
+2026.393617
+2000.0
+NaN
+1
+ZeruHmyz
+2204.858824
+2200.0
+NaN
+2
+PLATINUM
+2172.416667
+2160.0
+NaN
+3
+sosisamm
+2053.382653
+2040.0
+NaN
+4
+JasonVoorhees
+2144.333333
+2120.0
+NaN
+...
+...
+...
+...
+...
+zoranz
+NaN
+NaN
+NaN
+0.695652
+zorro2014
+NaN
+NaN
+NaN
+0.571429
+zulo
+NaN
+NaN
+NaN
+0.666667
+zuriko
+NaN
+NaN
+NaN
+0.631579
+zxcvbnmzxcvbnm
+NaN
+NaN
+NaN
+0.846154
+2751 rows × 4 columns
+
+
+
+
+
+
+
+
+
+
+1
+result = pd.concat([elo_list,win_rate],axis=0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+result
+
+
+
+
+
+
+0
+ID
+bucket
+elo
+0
+NaN
+kalitka_man
+2000.0
+2026.393617
+1
+NaN
+ZeruHmyz
+2200.0
+2204.858824
+2
+NaN
+PLATINUM
+2160.0
+2172.416667
+3
+NaN
+sosisamm
+2040.0
+2053.382653
+4
+NaN
+JasonVoorhees
+2120.0
+2144.333333
+...
+...
+...
+...
+...
+zoranz
+0.695652
+NaN
+NaN
+NaN
+zorro2014
+0.571429
+NaN
+NaN
+NaN
+zulo
+0.666667
+NaN
+NaN
+NaN
+zuriko
+0.631579
+NaN
+NaN
+NaN
+zxcvbnmzxcvbnm
+0.846154
+NaN
+NaN
+NaN
+2751 rows × 4 columns
+
+
+
+
+
+
+
+
+
+
+1
+result = pd.concat([elo_list,win_rate.reindex(elo_list.index)],axis=1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+result
+
+
+
+
+
+
+ID
+elo
+bucket
+0
+0
+kalitka_man
+2026.393617
+2000.0
+NaN
+1
+ZeruHmyz
+2204.858824
+2200.0
+NaN
+2
+PLATINUM
+2172.416667
+2160.0
+NaN
+3
+sosisamm
+2053.382653
+2040.0
+NaN
+4
+JasonVoorhees
+2144.333333
+2120.0
+NaN
+...
+...
+...
+...
+...
+1367
+yfgtyjnuu1
+2061.500000
+2040.0
+NaN
+1368
+_babuin_
+2040.000000
+2040.0
+NaN
+1369
+CEKTAHT_
+2038.000000
+2000.0
+NaN
+1370
+kabukiman
+2147.000000
+2120.0
+NaN
+1371
+vaccins
+2071.000000
+2040.0
+NaN
+1372 rows × 4 columns
+
+
+
+
+
+
+
+
+
+
+1
+type(elo_list)
+
+
+
+
+
+pandas.core.frame.DataFrame
+
+
+
+
+
+
+
+
+
+
+1
+result = pd.merge(elo_list,win_rate,on='ID',how='inner')
+
+
+
+
+
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/78207151.py in <module>
+----> 1 result = pd.merge(elo_list,win_rate,on='ID',how='inner')
+
+/usr/local/lib/python3.9/site-packages/pandas/core/reshape/merge.py in merge(left, right, how, on, left_on, right_on, left_index, right_index, sort, suffixes, copy, indicator, validate)
+    104     validate: str | None = None,
+    105 ) -> DataFrame:
+--> 106     op = _MergeOperation(
+    107         left,
+    108         right,
+
+/usr/local/lib/python3.9/site-packages/pandas/core/reshape/merge.py in __init__(self, left, right, how, on, left_on, right_on, axis, left_index, right_index, sort, suffixes, copy, indicator, validate)
+    626     ):
+    627         _left = _validate_operand(left)
+--> 628         _right = _validate_operand(right)
+    629         self.left = self.orig_left = _left
+    630         self.right = self.orig_right = _right
+
+/usr/local/lib/python3.9/site-packages/pandas/core/reshape/merge.py in _validate_operand(obj)
+   2270     elif isinstance(obj, ABCSeries):
+   2271         if obj.name is None:
+-> 2272             raise ValueError("Cannot merge a Series without a name")
+   2273         else:
+   2274             return obj.to_frame()
+
+ValueError: Cannot merge a Series without a name
+
+
+
+
+
+
+
+
+
+
+1
+result = pd.merge(elo_list,win_rate,on='ID',how='outer')
+
+
+
+
+
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/340586551.py in <module>
+----> 1 result = pd.merge(elo_list,win_rate,on='ID',how='outer')
+
+/usr/local/lib/python3.9/site-packages/pandas/core/reshape/merge.py in merge(left, right, how, on, left_on, right_on, left_index, right_index, sort, suffixes, copy, indicator, validate)
+    104     validate: str | None = None,
+    105 ) -> DataFrame:
+--> 106     op = _MergeOperation(
+    107         left,
+    108         right,
+
+/usr/local/lib/python3.9/site-packages/pandas/core/reshape/merge.py in __init__(self, left, right, how, on, left_on, right_on, axis, left_index, right_index, sort, suffixes, copy, indicator, validate)
+    626     ):
+    627         _left = _validate_operand(left)
+--> 628         _right = _validate_operand(right)
+    629         self.left = self.orig_left = _left
+    630         self.right = self.orig_right = _right
+
+/usr/local/lib/python3.9/site-packages/pandas/core/reshape/merge.py in _validate_operand(obj)
+   2270     elif isinstance(obj, ABCSeries):
+   2271         if obj.name is None:
+-> 2272             raise ValueError("Cannot merge a Series without a name")
+   2273         else:
+   2274             return obj.to_frame()
+
+ValueError: Cannot merge a Series without a name
+
+
+
+
+
+
+
+
+
+
+1
+elo_list.to_csv('elo_uniques.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+win_rate.to_csv('win_rates.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(g)
+
+
+
+
+
+'DiGraph with 1379 nodes and 8256 edges'
+
+
+
+
+
+
+
+
+
+
+1
+print("Year assortativity:", nx.attribute_assortativity_coefficient(g))
+
+
+
+
+
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1707380142.py in <module>
+----> 1 print("Year assortativity:", nx.attribute_assortativity_coefficient(g))
+
+TypeError: attribute_assortativity_coefficient() missing 1 required positional argument: 'attribute'
+
+
+
+
+
+
+
+
+
+
+1
+nx.set_node_attributes(g, elo_list, "elo")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+print("Year assortativity:", nx.attribute_assortativity_coefficient(g,'elo'))
+
+
+
+
+
+Year assortativity: nan
+
+/usr/local/lib/python3.9/site-packages/networkx/algorithms/assortativity/correlation.py:261: RuntimeWarning: invalid value encountered in double_scalars
+  r = (t - s) / (1 - s)
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(g)
+
+
+
+
+
+'DiGraph with 1379 nodes and 8256 edges'
+
+
+
+
+
+
+
+
+
+
+1
+nx.set_node_attributes(g, win_rate, "win rate")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+print("Year assortativity:", nx.attribute_assortativity_coefficient(g,'win rate'))
+
+
+
+
+
+Year assortativity: -0.003393165657767303
+
+
+
+
+
+
+
+
+
+
+1
+print("Win Rate assortativity:", nx.attribute_assortativity_coefficient(g,'win rate'))
+
+
+
+
+
+Win Rate assortativity: -0.003393165657767303
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = elo_list.replace(['?',Nan,'N/A'],2000) 
+2
+​
+
+
+
+
+
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/664555111.py in <module>
+----> 1 elo_list = elo_list.replace(['?',Nan,'N/A'],2000)
+
+NameError: name 'Nan' is not defined
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = elo_list.replace(['?','N/A'],2000) 
+2
+​
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+nx.set_node_attributes(g, elo_list, "elo")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+print("Win Rate assortativity:", nx.attribute_assortativity_coefficient(g,'win rate'))
+
+
+
+
+
+Win Rate assortativity: -0.003393165657767303
+
+
+
+
+
+
+
+
+
+
+1
+print("Win Rate assortativity:", nx.attribute_assortativity_coefficient(g,'elo'))
+
+
+
+
+
+Win Rate assortativity: nan
+
+/usr/local/lib/python3.9/site-packages/networkx/algorithms/assortativity/correlation.py:261: RuntimeWarning: invalid value encountered in double_scalars
+  r = (t - s) / (1 - s)
+
+
+
+
+
+
+
+
+
+
+1
+elo_list = elo_list.replace(['?','#N/A'],2000) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+print("Win Rate assortativity:", nx.attribute_assortativity_coefficient(g,'elo'))
+
+
+
+
+
+Win Rate assortativity: nan
+
+/usr/local/lib/python3.9/site-packages/networkx/algorithms/assortativity/correlation.py:261: RuntimeWarning: invalid value encountered in double_scalars
+  r = (t - s) / (1 - s)
+
+
+
+
+
+
+
+
+
+
+1
+g.desgree_dist()
+
+
+
+
+
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/427305050.py in <module>
+----> 1 g.desgree_dist()
+
+AttributeError: 'DiGraph' object has no attribute 'desgree_dist'
+
+
+
+
+
+
+
+
+
+
+1
+degree_sequence = [d for n, di in g.degree()]
+
+
+
+
+
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1810173833.py in <module>
+----> 1 degree_sequence = [d for n, di in g.degree()]
+
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1810173833.py in <listcomp>(.0)
+----> 1 degree_sequence = [d for n, di in g.degree()]
+
+NameError: name 'd' is not defined
+
+
+
+
+
+
+
+
+
+
+1
+degree_sequence = [d for n, d in g.degree()]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+config_model = nx.configuration_model(degree_sequence)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+nx.draw(config_model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+rand_adj = nx.adjacency_matrix(config_model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+type(rand_adj)
+
+
+
+
+
+scipy.sparse.csr.csr_matrix
+
+
+
+
+
+
+
+
+
+
+1
+print(rand_adj)
+2
+​
+
+
+
+
+
+  (0, 3)	1
+  (0, 16)	1
+  (0, 17)	3
+  (0, 22)	1
+  (0, 45)	1
+  (0, 47)	1
+  (0, 59)	1
+  (0, 63)	1
+  (0, 69)	1
+  (0, 73)	1
+  (0, 82)	1
+  (0, 84)	1
+  (0, 85)	1
+  (0, 115)	1
+  (0, 119)	1
+  (0, 124)	1
+  (0, 158)	1
+  (0, 199)	1
+  (0, 209)	1
+  (0, 214)	1
+  (0, 216)	1
+  (0, 230)	1
+  (0, 253)	2
+  (0, 266)	1
+  (0, 275)	1
+  :	:
+  (1365, 1135)	1
+  (1366, 58)	1
+  (1366, 516)	1
+  (1366, 677)	1
+  (1366, 725)	1
+  (1367, 612)	1
+  (1367, 824)	1
+  (1368, 1204)	1
+  (1369, 660)	1
+  (1370, 1034)	1
+  (1371, 234)	1
+  (1371, 342)	1
+  (1372, 223)	1
+  (1373, 101)	1
+  (1373, 109)	1
+  (1374, 857)	1
+  (1375, 262)	1
+  (1375, 412)	1
+  (1376, 51)	1
+  (1376, 136)	1
+  (1376, 363)	1
+  (1377, 97)	1
+  (1377, 962)	1
+  (1377, 1290)	1
+  (1378, 1129)	1
+
+
+
+
+
+
+
+
+
+1
+print(rand_adj[2])
+2
+​
+
+
+
+
+
+  (0, 35)	1
+  (0, 88)	1
+  (0, 92)	1
+  (0, 125)	1
+  (0, 243)	1
+  (0, 327)	1
+  (0, 591)	1
+  (0, 979)	1
+  (0, 1066)	1
+  (0, 1190)	1
+
+
+
+
+
+
+
+
+
+
+1
+print(rand_adj[0])
+2
+​
+
+
+
+
+
+  (0, 3)	1
+  (0, 16)	1
+  (0, 17)	3
+  (0, 22)	1
+  (0, 45)	1
+  (0, 47)	1
+  (0, 59)	1
+  (0, 63)	1
+  (0, 69)	1
+  (0, 73)	1
+  (0, 82)	1
+  (0, 84)	1
+  (0, 85)	1
+  (0, 115)	1
+  (0, 119)	1
+  (0, 124)	1
+  (0, 158)	1
+  (0, 199)	1
+  (0, 209)	1
+  (0, 214)	1
+  (0, 216)	1
+  (0, 230)	1
+  (0, 253)	2
+  (0, 266)	1
+  (0, 275)	1
+  (0, 288)	1
+  (0, 346)	1
+  (0, 347)	1
+  (0, 348)	1
+  (0, 391)	1
+  (0, 417)	1
+  (0, 446)	1
+  (0, 468)	1
+  (0, 490)	2
+  (0, 492)	1
+  (0, 503)	1
+  (0, 545)	1
+  (0, 546)	1
+  (0, 562)	1
+  (0, 563)	1
+  (0, 564)	1
+  (0, 605)	1
+  (0, 610)	1
+  (0, 674)	1
+  (0, 689)	1
+  (0, 819)	1
+  (0, 875)	1
+  (0, 943)	1
+  (0, 1079)	1
+
+
+
+
+
+
+
+
+
+
+1
+print(rand_adj[0][0])
+2
+​
+
+
+
+
+
+  (0, 3)	1
+  (0, 16)	1
+  (0, 17)	3
+  (0, 22)	1
+  (0, 45)	1
+  (0, 47)	1
+  (0, 59)	1
+  (0, 63)	1
+  (0, 69)	1
+  (0, 73)	1
+  (0, 82)	1
+  (0, 84)	1
+  (0, 85)	1
+  (0, 115)	1
+  (0, 119)	1
+  (0, 124)	1
+  (0, 158)	1
+  (0, 199)	1
+  (0, 209)	1
+  (0, 214)	1
+  (0, 216)	1
+  (0, 230)	1
+  (0, 253)	2
+  (0, 266)	1
+  (0, 275)	1
+  (0, 288)	1
+  (0, 346)	1
+  (0, 347)	1
+  (0, 348)	1
+  (0, 391)	1
+  (0, 417)	1
+  (0, 446)	1
+  (0, 468)	1
+  (0, 490)	2
+  (0, 492)	1
+  (0, 503)	1
+  (0, 545)	1
+  (0, 546)	1
+  (0, 562)	1
+  (0, 563)	1
+  (0, 564)	1
+  (0, 605)	1
+  (0, 610)	1
+  (0, 674)	1
+  (0, 689)	1
+  (0, 819)	1
+  (0, 875)	1
+  (0, 943)	1
+  (0, 1079)	1
+
+
+
+
+
+
+
+
+
+
+1
+import scipy.sparse 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+from scipy.sparse import lil_matrix
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+rand_adj[0,0]
+
+
+
+
+
+0
+
+
+
+
+
+
+
+
+
+1
+rand_adj[0,3]
+
+
+
+
+
+1
+
+
+
+
+
+
+
+
+
+
+1
+rand_adj[3,0]
+
+
+
+
+
+1
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(rand_adj)
+
+
+
+
+
+'  (0, 3)\t1\n  (0, 16)\t1\n  (0, 17)\t3\n  (0, 22)\t1\n  (0, 45)\t1\n  (0, 47)\t1\n  (0, 59)\t1\n  (0, 63)\t1\n  (0, 69)\t1\n  (0, 73)\t1\n  (0, 82)\t1\n  (0, 84)\t1\n  (0, 85)\t1\n  (0, 115)\t1\n  (0, 119)\t1\n  (0, 124)\t1\n  (0, 158)\t1\n  (0, 199)\t1\n  (0, 209)\t1\n  (0, 214)\t1\n  (0, 216)\t1\n  (0, 230)\t1\n  (0, 253)\t2\n  (0, 266)\t1\n  (0, 275)\t1\n  :\t:\n  (1365, 1135)\t1\n  (1366, 58)\t1\n  (1366, 516)\t1\n  (1366, 677)\t1\n  (1366, 725)\t1\n  (1367, 612)\t1\n  (1367, 824)\t1\n  (1368, 1204)\t1\n  (1369, 660)\t1\n  (1370, 1034)\t1\n  (1371, 234)\t1\n  (1371, 342)\t1\n  (1372, 223)\t1\n  (1373, 101)\t1\n  (1373, 109)\t1\n  (1374, 857)\t1\n  (1375, 262)\t1\n  (1375, 412)\t1\n  (1376, 51)\t1\n  (1376, 136)\t1\n  (1376, 363)\t1\n  (1377, 97)\t1\n  (1377, 962)\t1\n  (1377, 1290)\t1\n  (1378, 1129)\t1'
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(config_model)
+
+
+
+
+
+'MultiGraph with 1379 nodes and 8256 edges'
+
+
+
+
+
+
+
+
+
+
+1
+rand = open(rand_data.csv, "w+")
+2
+rand = open(rand_data.csv, "a", newline = "")
+3
+writer = csv.writer(rand)
+4
+​
+5
+​
+6
+for x in range(8256):
+7
+    for y in range(x, 8256):
+8
+        edge_weight = rand_adj[x,y]
+9
+        if edge_weight > 0:
+10
+            writer.writerow((x, y, edge_weight))
+11
+            
+
+
+
+
+
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1498401195.py in <module>
+----> 1 rand = open(rand_data.csv, "w+")
+      2 rand = open(rand_data.csv, "a", newline = "")
+      3 writer = csv.writer(rand)
+      4 
+      5 
+
+NameError: name 'rand_data' is not defined
+
+
+
+
+
+
+
+
+
+
+1
+rand = open("rand_data.csv", "w+")
+2
+rand = open("rand_data.csv", "a", newline = "")
+3
+writer = csv.writer(rand)
+4
+​
+5
+​
+6
+for x in range(8256):
+7
+    for y in range(x, 8256):
+8
+        edge_weight = rand_adj[x,y]
+9
+        if edge_weight > 0:
+10
+            writer.writerow((x, y, edge_weight))
+11
+            
+
+
+
+
+
+---------------------------------------------------------------------------
+IndexError                                Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/1188572504.py in <module>
+      6 for x in range(8256):
+      7     for y in range(x, 8256):
+----> 8         edge_weight = rand_adj[x,y]
+      9         if edge_weight > 0:
+     10             writer.writerow((x, y, edge_weight))
+
+/usr/local/lib/python3.9/site-packages/scipy/sparse/_index.py in __getitem__(self, key)
+     31     """
+     32     def __getitem__(self, key):
+---> 33         row, col = self._validate_indices(key)
+     34         # Dispatch to specialized methods.
+     35         if isinstance(row, INT_TYPES):
+
+/usr/local/lib/python3.9/site-packages/scipy/sparse/_index.py in _validate_indices(self, key)
+    141             col = int(col)
+    142             if col < -N or col >= N:
+--> 143                 raise IndexError('column index (%d) out of range' % col)
+    144             if col < 0:
+    145                 col += N
+
+IndexError: column index (1379) out of range
+
+
+
+
+
+
+
+
+
+
+
+1
+rand = open("rand_data.csv", "w+")
+2
+rand = open("rand_data.csv", "a", newline = "")
+3
+writer = csv.writer(rand)
+4
+​
+5
+​
+6
+for x in range(1379):
+7
+    for y in range(x, 1379):
+8
+        edge_weight = rand_adj[x,y]
+9
+        if edge_weight > 0:
+10
+            writer.writerow((x, y, edge_weight))
+11
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+g.degree()
+
+
+
+
+
+DiDegreeView({'kalitka_man': 53, 'ZeruHmyz': 150, 'PLATINUM': 10, 'sosisamm': 38, 'JasonVoorhees': 8, 'amazingoid': 24, 'brzigonzalez': 41, 'worms123': 11, 'PRESA': 22, 'Blitzstream-twitch': 99, 'ImprovingSkill': 72, 'mowpet': 51, 'pacal56': 75, 'Pikuro': 77, 'IvTK': 45, 'Kingscrusher-YouTube': 58, 'eqellar': 20, 'jlindner': 329, 'RBT02X': 5, 'NjScotsGuy': 20, 'Matetricks': 11, 'jonathantheh': 40, 'Horobetz': 100, 'Thecheesykid': 19, 'orsonico': 11, 'pythondave': 33, 'cocoarg': 39, 'nicky': 39, 'amin2101': 2, 'DragonRU': 5, 'Baluk': 36, 'tens': 17, 'solenko': 16, 'jankud': 29, 'nesa10': 58, 'futurum': 42, 'olman2011': 11, 'alpay': 8, 'T3rminat0r': 19, 'Chovier': 5, 'ZibbitVideos': 35, 'MoralIntentions': 1, 'mehrabjakvar': 14, 'Some-Patzer': 27, 'alainsoral': 63, 'BVB09': 51, 'Yegresmd': 48, 'Mohsenabutalebi': 15, 'monstrella': 56, 'Toro3': 2, 'amayak': 44, 'iman60': 24, 'larpayam': 23, 'looka': 26, 'binibin': 3, 'brahmsguitar': 2, 'lokomotiv_bz': 4, 'CarIsen': 1, 'Chalberts': 66, 'elrond': 47, 'tibi': 30, 'registrado': 6, 'Daltonic': 5, 'avv': 59, 'phil9234': 6, 'mecker': 161, 'zergy': 99, 'Jusuf-Np': 51, 'sousapensador': 5, 'itsmagic': 86, 'antoinette': 20, 'moj1990': 34, 'kutunas': 8, 'chessnightmare': 37, 'a2a4h7h5': 1, 'vit2014': 53, 'ali13agheri': 3, 'crazyslon': 43, '_KO_': 6, 'arpouille': 52, 'fidelgo': 2, 'jiktak': 57, 'Berezkin': 122, 'MR-Siamak': 53, 'TTZO': 26, 'Siline': 8, 'lex-1': 2, 'caiosparov': 16, 'Phaffans': 112, 'ohdy': 7, 'Bozantium666': 19, 'sidneycrode': 17, 'DariusIV': 50, 'zembelek': 74, 'ATorrente': 64, 'xaxaxaxa': 6, 'Noragerfromsweden': 38, 'Portos2010': 41, 'Reppko': 27, 'milanbelobrk': 22, 'krassparov': 53, 'Mat789189': 98, 'pilocl': 104, 'Kazan2502': 22, 'littlefiotte': 28, 'babken': 73, 'dual1': 4, 'oyt712345': 1, 'Sutileza': 1, 'MeikeSchlecker': 82, 'ryksuguskyr': 1, 'artin-iran': 8, 'Chechess': 39, 'otk': 30, 'andreasw': 4, 'kirisis': 50, 'pancholon3000': 7, 'olegplus': 6, 'cesar1994': 15, 'OrangeSpaceDrink': 44, 'erindreki': 65, 'frost111': 1, 'dreamwalker3': 21, 'rj1997': 30, 'clipperton': 20, 'jotjesus': 85, 'runawayscared': 37, 'andrewrun': 49, 'Valtor': 8, 'Svonti': 7, 'Stupidity_Tries': 52, 'RobbyFischer': 12, 'ajdukapis': 15, 'Drak': 6, 'Gorn': 32, 'mxs': 2, 'Discofox': 30, 'Korjab': 1, 'Nictofobia': 55, 'chesslion': 2, 'Arkadiusz': 10, 'cavanof': 47, 'EDPAUL': 2, 'Nevski': 29, 'samir0009': 11, 'Putinovic': 3, 'gus_fring': 70, 'ribarisah': 123, 'Laudatio': 14, 'shelajev': 103, 'pridoni': 30, 'jeffforever': 10, 'kasma': 13, 'TheIniciative': 5, 'Cosine180': 6, 'Shaeferov': 24, 'DaFud': 18, 'Rafael100': 53, 'Germain': 105, 'gladpie': 16, 'escalibut': 20, 'alienb': 4, 'pirouetti': 4, 'GodsLeftHand': 1, 'CaicoAmaral': 22, 'heel': 31, 'kabaplanca': 11, 'cug': 20, 'akseb': 11, 'Benkoman': 3, 'Lewis61': 3, 'gambitron9000': 2, 'Raf48': 7, 'lakdrcjbj': 33, 'jorquerino': 25, 'BND': 15, 'dorongmata': 2, 'nesher': 40, 'PoJer': 2, 'Protoreus': 51, 'Leningrado': 1, 'branislav43': 13, 'NABat': 52, 'freakyavocado': 44, 'arina1999': 73, 'naiche': 32, 'Alexinio99': 7, 'ruter': 38, 'turgutcosan': 1, 'AnatoliyPechenkin': 22, 'Albator': 96, 'twitch_martiss45': 9, 'arazaraz': 33, 'tocaifriulano': 19, 'potus0': 7, 'PlayForLife': 1, 'saroyan1990': 1, 'hiranyagarbha': 20, 'dan31': 5, 'Chess_mosaics': 35, 'mknz': 20, 'BOURAKA': 1, 'Vihvillain': 74, 'goldenking1998': 1, 'arc_chess': 24, 'pachamama': 49, 'D10Kas': 1, 'mmmmm2020202020': 3, 'Adegeminas': 7, 'PERSEI': 23, 'suadba': 19, 'hackauron': 7, 'KG_Chess': 4, 'sale83': 6, 'Svesh': 48, 'spab': 5, 'claymore': 105, 'marikov': 12, 'Neverhood': 1, 'World-Loser': 4, 'younes_1990': 10, 'halley': 1, '80206000': 15, 'abarmard765': 63, 'Butafor': 3, 'likor64': 5, 'Daffix': 22, 'gimpel': 7, 'Shermukshnelis': 1, 'intobolivian': 5, 'BearJr': 34, 'mehrabking': 2, 'catzilla': 8, 'ManFromMars': 5, 'Ali_rastbod': 17, 'DrinkaBit': 1, 'benayon': 1, 'peor2': 1, 'gulixuli': 7, 'texttire': 17, 'vid': 63, 'KNST_495_888': 13, 'romarfa': 5, 'upandcomer': 17, 'donairo': 12, 'manono': 3, 'jorquerov': 25, 'ramon444': 34, 'Capivarabq': 2, 'Krochnoi': 6, 'InTheEnd': 2, 'eviltwin': 7, 'antavirus': 4, 'JimmyMow': 26, 'duarthes': 2, 'jamasukro123': 5, 'dodi65': 25, 'xithry': 1, 'Nrock': 9, 'oleg_h': 5, 'SKI1946': 30, 'aronian1': 3, 'mazetr': 11, 'Castlan': 10, 'deozki': 3, 'azaharia': 4, 'bakovka': 39, 'Rahim51': 26, 'sasha111': 7, 'god_ofwar': 3, 'Suerte': 2, 'GoodTimes': 24, 'bal_gecesi': 6, 'sansechess': 4, 'MontessoriChess': 11, 'Assios': 55, 'sisili': 15, 'godofwar2014': 7, 'Camembert': 1, 'pulsar': 6, 'boatsnhoes': 1, 'alkemisti': 12, 'Tata190': 10, 'bia': 1, 'ramtin939': 1, 'qweqweqweqwe1': 5, 'TX1': 1, 'frantoro': 5, 'Romoda': 66, 'Polmipoque': 11, 'D31282': 5, 'greyberry': 2, 'SanPedro': 3, 'drmanthan321': 5, 'JackBauer': 2, 'osipov': 20, 'Lyova': 1, 'sicilianmaster': 4, 'monoid': 10, 'IgorKoc': 47, 'Bale11': 2, 'bandit650s': 15, 'Lagrange': 2, 'istil': 23, 'Pterodactyl': 72, 'alemzo': 2, 'misko111': 5, 'Monyassa': 1, 'kicmak': 86, 'gonzalesramon': 1, 'Yaguarete': 50, 'exiit': 4, 'JonggXi': 16, 'Surjadi': 5, 'OneOfTheQ': 13, 'lambda777': 3, 'zoranz': 18, 'microcommega': 1, 'M_M_M': 1, 'AnnieK': 12, 'Phyisis': 4, 'bluediamond7': 3, 'mashir': 38, 'Koji': 4, 'bahram33': 2, 'hashiva': 15, 'chesserstein': 21, 'Florinmagnus': 37, 'Aiss': 3, 'pawn-x': 6, 'macho2014': 1, 'ecbg': 43, 'Miniplus': 2, 'mixst': 5, 'RSPIRES2': 3, 'raskolnikov56': 75, 'jpcheck': 8, 'nikolaRBM': 61, 'csm': 8, 'mm3210': 2, 'amourmonstre': 49, 'zimar': 1, 'igo1': 105, 'kromzom': 40, 'androsh': 1, 'Shumov': 4, 'bikhial': 143, 'infinite-automata': 64, 'fogof': 22, 'Daimon1990': 6, 'Maotoonlente': 1, 'TrickOrTreat': 8, 'arshavir': 1, 'Dcollins': 1, 'voditel': 6, 'ania94': 12, 'Desteyn-2014': 1, 'LittleDidYouKnow': 2, 'JeanH': 24, 'blue13': 7, 'Safifa': 5, 'Castrito': 8, 'bigorneau': 7, 'spojar': 89, 'yasrdhbol': 1, 'bababbabab': 7, 'barane': 2, 'playcheckers': 7, 'unknonsense': 1, 'jorp': 7, 'MKna150': 22, 'hyperprior': 5, 'AntaresS81': 9, 'GMICE': 2, 'Varjag': 1, 'DRAGONUA': 1, 'cantona1362': 4, 'mahshid': 18, 'yspb': 2, 'Eliobonor': 1, 'saber-v': 10, 'icediamond7': 1, 't-feng': 12, 'godes': 3, 'santer': 6, 'ubvftd': 5, 'kesarev': 33, 'YvesAnchouk': 14, 'Gravey4rd': 39, 'pmsryu': 33, 'miao': 4, 'amirkhafan': 132, 'xequito': 8, 'Buzzz2': 1, 'namardee': 1, 'horst': 2, 'tutuy': 1, 'AlexDeSouza': 1, 'Dajaneira': 7, 'RUMVI': 6, 'JYOTHSNA-NLC': 1, 'gligorije': 6, 'Jurij': 16, 'tweet': 3, 'halilov': 9, 'azadi': 7, 'Buckokokos': 20, 'BAZOUKA': 3, 'yavashington': 12, 'Yukhno_Alexander': 15, 'Grettir': 9, 'gojkon': 8, 'Lasker1900': 16, 'StinkyBoy007': 14, 'tal-i-alo': 5, 'nimaphkh-iran': 1, 'SerrNikk': 1, 'MensaNTXS': 3, 'novisad01': 7, 'Rettousei': 4, 'ustag': 4, 'macr0': 3, 'terslik': 1, 'marathon_woman': 3, 'faku312': 2, 'motet': 1, 'LUISJAVIERLP': 8, 'andrei70ster': 2, 'Permanganato': 1, 'denizn': 21, 'desmo': 3, 'blueguy7': 5, 'leonsupreme': 3, 'Glotoswert': 1, 'Anomander': 6, 'hyakinthos': 4, 'Kiyotaka': 11, 'krasIn': 1, 'Petrovich63': 38, 'liutikoff': 2, 'mahavj': 7, 'labo531': 16, 'xnowayx': 2, 'ashtari': 4, 'Demonique': 17, 'StrangeMove': 25, 'BigRip': 19, 'CormoranKR': 14, 'DEVELOP3R': 5, 'javid1322': 42, 'DeathInTheToilet': 34, 'konakjan': 38, 'Skinmaster': 14, '_coco_': 11, 'GNBGHBGH': 3, 'Blitz177': 2, 'HJKJKHJK': 4, 'KSKSKSKSXFNDMVCNMXV': 4, 'KIKIKIKIKCVKC': 4, 'Blitz1777': 2, 'schnappi': 20, 'elektroz': 10, 'rymrym2929': 7, 'karpov3': 1, 'JoaBN': 60, 'masal': 10, 'akramcharfeddine': 1, 'prova4002': 2, 'JMD': 17, 'Andreyp': 1, 'petra': 2, 'bob62': 1, 'jaier': 18, 'breizhladen': 17, 'salagaa': 1, 'new77': 5, 'yetmez': 11, 'Churro': 1, 'mahyar-90': 25, 'guardman': 24, 'jhkij': 2, 'kulje': 19, 'Blake': 9, 'Porfirios': 25, 'oshkob': 1, 'Mcrapbel': 1, 'D_Stahlberg': 28, 'Leone': 3, 'haky': 2, 'diegor': 5, 'magic-milo': 39, 'amigochez': 1, 'mpf67': 3, 'Barista': 2, 'aaa505050': 1, 'Death1vs1': 1, 'wichy': 15, 'kaZuHA': 1, 'ZMAJ': 36, 'Vlaolbold': 2, 'kamal1386': 9, 'DreamLight6767': 1, 'AP007': 5, 'Litium': 48, 'RezachessMaster78': 14, 'zulo': 3, 'olborg': 24, 'aruo': 8, 'wvar': 2, 'moi373737': 2, 'torkun': 1, 'muntesu': 4, 'liargo': 3, 'dj770': 1, 'ayka_99': 19, 'nikolaypetkov_bnpp': 1, 'clinisbu': 19, 'goraja': 12, 'kkk68': 1, 'ufvij': 1, 'Ministre_pizza': 9, 'hazael': 1, 'sofi410': 10, 'Cheese_chess': 4, 'shredded': 7, 'frenck1': 18, 'Plor': 4, 'zuriko': 12, 'paul58': 6, 'sezwho': 73, 'cypher2199': 17, 'panaman': 16, 'impulsee': 47, 'Lediamov': 21, 'DuraznoSangrante': 8, 'taulajoe': 1, 'saghar1383': 3, 'lietuvis': 17, 'Farshad54': 56, 'littlefiottethebest': 1, 'iuser76': 7, 'Bordok': 102, 'Kramfran': 11, 'cxecxe': 20, 'cypher-2199': 1, 'radyo': 3, 'kanepe': 18, 'GrabWlad': 1, 'savef': 10, 'ChikChak': 1, 'Akademia0': 4, 'lichess-': 1, 'tatalimov': 15, 'jthc': 13, 'MARKEUR': 9, 'Laterp': 2, 'Dominated': 20, 'iuytrewq147': 1, 'Patrizsche': 24, 'oquzlar': 21, 'nayme': 13, 'nik900': 1, 'JakobBo': 14, 'mahir123': 7, 'ayathustra': 20, 'Blitzki': 20, 'jaipov': 2, 'moutcho': 8, 'Ed1': 1, 'fymax': 98, 'goltrpoat': 2, 'tranca': 1, 'FuturoMestre': 4, 'thegoodknight': 1, 'cypher199': 2, 'soapytime': 24, 'GMIsmael': 1, 'yuio': 6, 'Dreampower': 4, 'hosein1970': 7, 'naser-----': 1, 'raMtiN_MagNuS': 4, 'botanik2': 5, 'vktrch': 12, 'TheWall_': 3, 'fincan': 5, 'LordKiseiju': 1, 'MRnimapashi': 2, 'nimapashimr': 2, 'covua3001': 3, 'sekerlik': 2, 'iNUiT_nUNAAt': 4, 'matjuck': 2, '_-horror-_': 6, 'TASSADAR': 26, 'nolp': 4, 'palng': 10, 'fasulye': 3, 'realder': 1, 'maydanoz': 1, 'Ratatinator': 19, 'sehpa': 6, 'dfdfdt0202': 4, 'bizamil': 14, 'catal': 3, 'homoeporediensis': 9, 'Maricki': 11, 'glee': 9, 'I_laugh_at_you': 2, 'd_mikle': 1, 'abucavid': 5, 'trio_rio': 2, 'tuskerking': 36, 'Kobylka': 21, 'mmm0202': 1, 'vicam': 19, 'IMBallesteros': 6, 'mk64': 3, 'ChessFantom': 3, 'azaz0101': 1, 'DOGALGAZ': 1, 'chessmusic': 65, 'argo': 17, 'portakal': 11, 'fotc': 5, 'crazymetalxxx': 2, 'DontBeMad': 50, 'azaxc0101': 1, 'bahar1389': 2, 'Streepo': 2, 'arminJM': 2, 'Nerwal': 15, 'gile2510': 1, 'HeunD': 9, 'BATA007': 1, 'blablub': 2, 'raminder57': 4, 'upep': 32, 'mb1': 2, 'Kollanda': 10, 'ryujin': 5, 'Twinpeaks': 6, 'pajaro': 12, 'xX420_N0Sc0p3zXx': 1, 'mutuvan': 4, 'Spinaltap': 9, 'MLUN': 78, 'gpv': 5, 'Mish': 25, 'expert700': 3, 'batman2000': 2, 'alelagi': 4, 'Ludwig_I': 2, 'RudolfSpielmann': 1, 'pac2103': 2, 'Hallon': 3, 'keyboardwarriorr': 6, 'ver_vas': 7, 'kostya19841': 21, 'Ced97418': 2, 'milancuruvija': 64, 'seyedsaeed': 2, 'VasiliyProkopiev': 2, 'millin': 2, 'predejan': 4, 'bmw10': 1, 'Alanas': 13, 'iranii': 1, 'irusha': 2, 'McKane': 5, 'alia234': 10, 'pipisipis': 81, 'ozzychess': 2, 'Phaethon': 69, 'inzeitnot': 30, 'sidharth13': 1, '-ParLaMenT': 1, 'kurton': 130, 'goldhourse': 2, 'gracioso13': 1, 'nefantii': 23, 'watov': 1, 'Jcat84': 20, 'sylva': 5, 'SRF12jul12': 2, 'Binimoy': 1, 'blastol': 31, 'karimov': 38, 'luisreynoso': 6, '91123020': 15, 'serge_vw1': 4, 'Taolu': 4, 'Frankel': 1, 'sajjad_mobaraki': 2, 'GMShaokhan': 4, 'Vulpini': 3, 'areza': 2, 'DrMorte': 1, 'x014y': 1, 'glablabla': 1, 'MorozevichA': 4, 'fhermann': 7, 'zizzou': 2, 'lion25': 1, 'cofee-chess-11': 3, 'rubiking': 1, 'langtubeo': 1, 'Delgeriatrico': 12, 'deda1946': 2, 'nqclimaster': 9, 'walkingparadox': 13, 'stupiid_ania94': 4, 'Szpilman': 1, 'impacto': 1, 'Egor777': 1, 'duzi1964': 6, 'joaoluizmonnerat': 2, 'finalflash': 4, 'igorxxx': 2, 'kel_ebek': 2, 'Daddylonglegs': 2, 'chesswolf': 1, 'pjsino': 1, 'DuetKiller': 2, 'adventist': 2, 'plush1': 6, 'watersign': 1, 'Seredas': 5, 'retrograd': 2, 'aurel': 12, 'dsfddsdsds': 4, 'trotil_': 2, 'JokingHero': 2, 'TrialB': 11, 'Artusik12357': 1, 'rcedron': 1, 'nuam': 12, 'gat0555': 1, 'SVIST15': 4, 'langyen': 1, 'JOWD': 2, 'acmeeeeeen': 1, 'Al3j0': 1, 'Rioma': 3, 'subpixel': 2, 'sindirella': 2, 'ZZ2Z277': 2, 'esthete': 1, 'antibiotik': 1, 'anty': 2, 'wheeee': 11, 'nafnaf54': 1, 'jstraaten': 31, 'i_am_not_a_smart_man': 1, 'attitudal': 5, 'Shamil_Unknown': 2, 'Serzh1956': 15, 'Danverg': 8, 'antibiotic': 2, 'SomeBigName': 1, 'HydroLux': 2, 'baba0': 1, 'gnarizzy': 21, 'MingChang': 41, 'Shouldbeworking': 6, 'alexkoay': 1, 'Pro_100_Mika': 4, 'outlier': 49, 'Badkoos': 2, 'ACKET': 3, 'Kushtrimh': 24, 'jjvolf79': 3, 'fidel_go': 13, 'kazablanka': 8, 'take-it-ez': 1, 'RPG77': 2, 'JTMFC': 4, 'trrr': 3, 'JaffaCakes': 2, 'river13': 4, 'Flasher452': 1, '_innovator_': 3, 'sefalet': 7, 'fra403': 1, 'temizlikci': 3, '55555': 1, 'banebojnik': 3, 'stochastic7': 2, 'kknight': 43, 'KarelusMaximus': 1, 'PawnGambit': 1, 'totalchess': 4, 'MINTUPIEZZI': 1, 'vnimatelevsfg': 1, 'pakostnik': 2, 'samane-t': 1, 'jox52': 1, 'Kuroda': 2, 'maximmo': 1, 'tornet': 7, 'seigneur': 12, 'sonic7': 9, 'alejandroo19': 2, 'younes45675': 1, 'ZZ7A': 1, 'marina17': 12, 'juanze21': 24, 'lyuw': 1, 'mesi2014': 4, 'daunuoc': 1, 'topazxan': 8, 'azertyu123': 2, 'zarrabi57': 5, 'malachi76': 9, 'TheHoudini': 1, 'joe59': 1, 'hasta': 1, 'alekhin1937': 1, 'fdd5544w': 1, 'vas1945': 66, 'danlokgarzon': 2, 'mixx': 5, 'rigosj': 6, 'zorro2014': 6, 'lasker2': 10, 'FM-KARZAKI': 11, 'Vadim3000': 1, '_exorcist_': 1, 'yhfjmxm': 1, 'zdenek': 1, 'superchess11': 2, '_-moloch-_': 2, 'kholifatullah': 1, 'iks': 5, 'pingogigante': 23, 'tygerty': 5, 'younes6767': 1, 'narkohat': 2, 'darewing': 8, 'Micky-Micky': 7, 'beater': 5, 'LDBKC': 1, 'tricycle': 4, 'shaxMSTAtist': 8, 'sumandas': 3, 'batilski': 2, 'Giftzwerg': 1, 'Chiribim': 2, 'ti812': 1, 'Milan2334': 2, 'SSTotenkopf': 4, 'ujura': 36, 'yjunior2013-1': 1, 'skynet13': 20, 'knap': 1, 'DrValue': 46, 'BOZ969': 1, 'TT-68': 9, 'Alex_1987': 2, 'sadman11': 1, 'yhtushko': 3, 'payman7': 23, 'elmaliii': 1, 'prosbx': 28, 'sah10': 1, 'joedoubt': 2, 'ajosilso': 3, 'durnius': 4, 'BigBugBenteke': 2, 'lt1': 1, 'Seppo': 1, 'yayan': 2, 'legend': 3, 'Red_Allert': 2, 'gogf88': 1, 'Maria_K': 36, '_imitator_': 2, 'mich_5': 1, 'pulkownik0': 4, 'SINA_001': 1, '_auditor_': 3, 'mikrofon': 1, 'akraba': 18, 'ttee': 1, 'dondurma': 3, 'leguizcaro': 1, 'lifeislive': 2, 'gambiterr': 25, 'rajah': 1, 'chessgogo2011': 2, 'babi123': 1, 'Ivan_Vodka': 1, 'LRJ': 1, 'Adam82': 5, 'BAHTIYAR': 1, 'ArKen': 1, 'nilocairo': 1, 'dolap': 6, 'onxisback': 2, 'luis_alfredop': 8, 'Neologic': 3, 'Soturi': 6, 'agolp': 2, 'leo0021': 2, 'vadikass': 4, 'GMstrange': 2, 'christopheh': 1, 'mofo': 10, 'tir44': 1, 'killourtrees': 9, 'BAXONIZO': 11, '_Kozel_': 3, 'edrisiran': 4, 'antawn': 14, 'younes76656': 1, 'equilibrist': 1, 'StefanNK': 4, 'szachpat': 1, 'borodavochnik': 1, 'aynalar': 5, 'accelix': 3, 'ava-n-1379': 1, 'ramires84': 1, 'TECTOCTEPOH': 2, 'dex26': 9, '-_______-': 3, 'paximi': 8, 'sachinder': 9, 'pokemon_': 1, 'Varon': 3, 'fenix13': 1, 'vvai': 2, 'samodelkin': 3, 'whatever': 4, 'salar': 1, 'qulko': 5, 'mtluser': 14, 'avanti': 6, '_patriot_': 2, 'Ns7edR0EMCZONRp1g7FN': 1, 'ZSZZ': 1, 'Trinidad84': 6, 'Orochimaru': 10, 'ENERGIE73': 35, 'hentes81': 5, 'Toadofsky': 1, 'ceref': 2, 'shakhe': 5, 'ZSZ8': 1, 'ximoxo': 1, 'qazplmwsxokn': 2, 'Quanganh1025': 7, 'Artur2014': 1, 'faulschlamm1': 32, 'hosein1370': 12, 'tagaharang': 4, '_mustapha_': 1, 'Mahmud': 4, 'aceleci': 1, 'chessbandit': 4, 'hosein1991': 1, 'arkadi1958': 1, 'Kamillentee': 27, 'slippo': 1, 'bitarafinagirsin': 2, 'breaky': 1, 'grigri': 2, 'yildizlarinaltinda': 10, 'litavrist': 11, '_exlusive_': 1, 'kapa2': 5, 'slobozia': 2, 'gaith': 9, 'arvin1372': 3, 'Morie1213': 3, 'ludonissa': 4, 'MurphyLasker': 1, 'jcb312': 3, 'GruenfeldAdict': 5, 'Ingentalang': 61, 'kmd007': 6, 'karlsrue': 1, 'StrongAttacker': 1, 'BernardBlack': 1, 'dui_rp': 2, 'saluki': 1, 'Bg7': 2, 'antonov666': 1, 'ant1999chess': 1, 'Aplitic': 6, 'Chessrk': 1, 'GRN': 3, 'MONOZEVICH': 28, '_anachronist_': 1, 'grandwwwlz': 1, 'newnomew': 1, '_retrograd': 2, 'durrrrr': 1, 'mmix': 1, 'AceofSpies': 3, 'hashemian': 17, 'lindogatito': 5, 'demaupassant': 8, 'avangardist': 2, 'anand1': 14, 'Bishnu': 3, 'bisan': 5, 'Andp': 8, 'MxTriX_': 4, 'yura_hist': 1, 'maulwurf': 4, 'Salgadim': 7, 'noti': 1, '_asket': 3, 'abbasimehdi60': 4, 'superspeed': 5, 'Bagirow': 12, 'comegatas': 2, 'EricKaneda': 3, 'vevesem': 37, 'angelus666': 1, 'Breslin': 1, 'litning': 1, 'blue_mask': 1, 'aroshka': 1, 'Draker': 1, 'nimanewmew': 2, 'yalenydd': 1, 'Acorus': 2, 'Sergeguillemart': 3, 'ari_atoy': 2, 'ytt': 5, 'SMJT': 2, 'ShPad': 2, 'e1usion': 45, 'Oberst': 3, 'master-chess': 3, 'xtrem999': 1, 'Cerceris': 1, 'bauk': 1, 'nietszche': 2, 'stochastic__': 1, 'I-_-I': 1, 'mfaraji': 7, 'DarkHole': 2, 'rigby': 2, 'ZugAddict_Twitch': 3, 'ThapCuongVoGia': 3, 'Peeter': 19, 'HiddenCatch': 1, 'ql50': 1, 'Guras': 2, 'CARLSENOV': 1, 'zhoskirocker': 8, 'theitalian': 1, 'Ronin13': 2, 'ererrf0909': 2, 'MrPatate': 30, 'cmcm5002': 2, 'huzun': 10, 'cinics': 2, 'fvgrgr0404': 7, 'fi05': 6, 'awesomeadam': 2, 'ChessBeam': 2, 'croarh51': 21, 'sigmaa': 2, 'Sergio_Aguero': 21, 'vladfeod': 5, 'ehsan_fire': 1, 'matutin': 4, 'arna': 66, 'AltaMachine': 2, 'einsam': 1, '_Mustapha': 2, 'resmir': 5, 'PARACETAMOL': 1, 'giuliob': 3, 'misaaa': 3, 'rachomtbg': 1, 'ikuju0202': 1, 'vvvbbbbnnnggg': 2, 'BlackFury': 5, 'stabilizator_': 3, 'orginalea': 4, 'FifthCategory': 2, 'ceaser80': 2, 'PhilyL': 2, 'obloumov': 2, 'CanadianChess': 2, 'Hossein1992': 2, 'svetozar': 2, 'shaf': 7, 'partizan73': 17, 'Huevon': 13, 'epsilon1': 4, 'waxd': 1, 'alexandr7522': 6, 'alexthegreat': 6, 'kokokoko79': 4, 'flogislife2': 2, 'Mirze1': 2, 'Karpov14': 2, 'ranzo': 1, 'Salar_51': 2, '_praktikant_': 2, 'aoao': 1, 'yasir752': 36, 'Xaxatun': 2, 'TRO7': 7, 'oxymoron21st': 5, 'nimapashikhs0098': 2, 'nimapashinew005': 9, 'foodbooke': 3, 'aptallar': 2, 'Justlikemusic': 3, 'LeeWanCleef': 5, 'ComeUppance': 4, '_Theoretik_': 1, '_l_l_l_': 26, 'rt0306': 30, '_introvert_': 8, '1nate2nate': 21, '-_si_-': 2, 'losos': 1, 'alikamak': 1, 'zivnix': 1, 'azaaadi2002': 2, 'rashtao': 1, 'CrazyMadMax2': 22, 'Kokon-25': 1, 'WhatsLosing': 1, 'Clark-Bent': 2, 'paradigma': 1, 'pumpicka': 3, 'zxcvbnmzxcvbnm': 8, 'Luters': 6, 'kansinat': 1, 'ostadbozorg3400': 2, 'Confutatis': 3, 'winner78899': 2, 'SocratesM': 1, 'BlauerKlaus': 1, 'gari-k': 32, 'SuperMi': 44, 'Clams': 1, 'uzaif': 1, 'Letins888': 1, 'BuffaloMuch': 1, 'dorsa1392': 9, 'old13': 1, 'SATO1': 1, 'Tsiri86': 2, 'diogo007': 11, 'josefranciscotrator': 1, 'Argentinaa': 7, 'dindin1': 1, 'pochocho76': 4, 'Zolotaja13': 1, 'MiesesBruce': 1, 'nuwonga': 23, 'pasoviola69': 1, 'vepashka': 8, 'knopp': 4, 'OCoringa': 43, 'parevluves': 1, 'LoroVerde': 29, 'mark_twain': 36, 'darhaa': 8, 'rrrtttyyy': 1, 'JMC-': 5, 'topce': 36, 'JessePinkman': 2, 'Tikal': 4, 'ChessWhiz': 1, 'ferchos': 2, 'Morfi4': 1, 'Morphy91': 3, 'shatrangbaz': 2, 'zekinha16': 1, 'Vlad76': 1, 'shutupandplay': 3, 'Riddik345': 5, 'Piquro': 27, 'amir79': 1, 'letmeplaynow': 1, 'lisek91': 1, 'wwr': 1, 'lovlas': 17, 'ellince': 2, 'Voittamaton': 11, 'Vicious': 2, 'kpop_star': 2, 'celas-of-clets': 2, 'amirherkul': 10, 'johny_': 3, 'PowerfulChessPlayer': 18, 'Philidor1792': 7, 'Morric': 1, 'vvvvvvv50540': 1, 'stochastic9': 14, 'Pierrodactyle': 1, 'TheOldOne': 4, 'Souren': 2, 'CrazyMadMax3': 55, 'sky2014': 1, 'luc5': 2, 'fras20016': 1, 'KotovSyndrome': 1, 'Lunaticz': 3, 'pulkownik1': 20, 'lttoledo': 1, 'mmmm6325': 4, 'PlanToWin': 3, 'lllllll8568': 1, 'erteg47': 3, 'ggggggg7878': 2, 'ka6an': 1, 'karelusmaksimus': 1, 'tehraniran': 16, 'Teddie': 3, 'kawskozah': 2, 'Bouchard': 1, 'HoaiNiem': 10, 'wolfychess': 1, 'mehere': 3, 'lukdimarco': 1, 'kkkjhhggh12345': 4, 'saeedherox': 36, 'leptonic': 29, 'okazaki': 1, 'nimapashikh006': 4, 'nimapashikh0098': 5, 'Anonim_13': 3, 'InsanePwn': 16, 'predejanex': 2, 'nimapashi003': 4, 'glube': 1, 'Sergey_': 1, 'Eurekatimes': 1, 'LevonKarapetyan': 1, '1smurf5': 1, 'wigglewiggle': 18, 'HillHock': 1, 'veryclear700': 2, 'Spellvexit': 5, 'kotbegemot': 1, 'olacy': 3, 'Feder': 1, 'daji1006': 1, 'joemanji': 1, 'rafaking': 4, 'amirkokoamli': 2, 'YouralterEgo': 1, 'k2052': 1, 'shammies': 1, 'chessfune': 2, 'xcxxxx52': 2, 'eternauta': 1, 'Shachspielkunst': 3, 'kurzeme': 3, 'llolllll6': 2, 'night_rid3r': 2, 'Lajosportis': 8, 'ChesSuxX': 1, 'wind1982': 6, 'pinkpony': 2, 'TTTTTT11': 1, 'mokachino': 2, 'Sonata2': 4, 'king146': 2, 'klaja': 32, 'Wachen': 4, 'SSAARR': 1, 'nimapashikhirtabriz': 8, 'gabacho': 8, 'asew': 1, 'oplya': 1, 'HHHHHHH0': 1, 'cosinus': 5, 'VELHOTE': 5, 'bikhail': 2, 'astra': 4, 'Tjoffen': 6, 'thoegersen': 2, 'FMiki': 6, 'paloverdekid': 1, 'honzarusnak': 6, 'TacticalEye': 2, 'Frankovich73': 1, 'dede2014': 4, 'Kaaater': 3, 'amirkhanloomorteza': 3, 'Pulsy': 1, 'heimoelo': 1, 'mstfa0': 4, 'vay_ayi': 14, '_-Mr_Vitaliy-_': 2, 'mortezamesi1': 1, 'fernandeszorro': 1, 'Cafetiere': 1, 'yfhjfghynm': 1, 'ketoprak': 4, 'Ranger7168': 2, 'nadbog': 3, 'konyol': 4, 'OPTYMUS': 1, 'danielcuva': 3, 'gamlet': 7, 'Daniel1999': 13, 'GameStarted': 5, 'nimapashikhtabrizira': 4, 'Stepanesayan': 1, 'javadsh': 1, 'muschi': 1, 'drseuss': 6, 'Indomable': 1, 'Lockstockandtwo': 2, 'carlsen89': 2, 'MisterBiggStuff': 1, 'Withouttalent': 1, 'modulo': 4, 'jarda': 16, 'nomistakes7': 1, 'Choco3000': 1, 'watchout700': 1, 'Magnushoracio': 2, 'yuchen': 4, 'didigaga': 1, 'Tifus': 4, 'nimapashikhiriran001': 3, 'Dake': 2, 'Matador_Angelo': 3, 'turbocut': 1, 'zerosquad': 2, 'suparno': 9, 'amirkhanloomorteza12': 2, 'amirkhanloomorteza20': 1, 'Kojokari_Dmitri': 4, 'hossiganji': 1, 'tembelek': 4, 'Sokica_95': 3, 'ketombe': 4, 'doc2': 1, 'javadsharoi': 6, 'santral': 1, 'Chess-mat': 1, 'ranger64': 2, 'shutyomov': 1, 'noname8': 1, 'Kudos': 2, 'MAKARROS': 6, 'yhyyyy': 1, 'kafana': 7, 'ldlan': 4, 'nnnnnnnn1': 1, 'chessfriend90': 1, 'Cliquot': 2, 'akselerat': 1, 'my_revenge': 1, 'assignee': 2, 'antonije': 1, 'gmv': 10, 'papito2014': 1, 'pirketo': 1, 'ttmorteza1': 1, 'boncoup': 4, 'yfgtyjnuu1': 2, '_babuin_': 1, 'CEKTAHT_': 1, 'kabukiman': 1, 'vaccins': 2, 'keyhanone': 1, 'bulus': 2, '_CEKTAHT': 1, 'NoBanPlease': 2, 'mustaplak': 3, 'RiccardoRubino99': 3, 'andreichess': 1})
+
+
+
+
+
+
+
+
+
+
+1
+sum(degree_sequence)
+
+
+
+
+
+16512
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(g)
+
+
+
+
+
+'DiGraph with 1379 nodes and 8256 edges'
+
+
+
+
+
+
+
+
+
+
+1
+16512/1379
+
+
+
+
+
+11.97389412617839
+
+
+
+
+
+
+
+
+
+
+1
+degree_sequence = [d for n, d in config_model.degree()]
+2
+config_model = nx.configuration_model(degree_sequence)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+sum(degree_sequence)
+
+
+
+
+
+16512
+
+
+
+
+
+
+
+
+
+
+1
+nx.info(config_model)
+
+
+
+
+
+'MultiGraph with 1379 nodes and 8256 edges'
+
+
+
+
+
+
+
+
+
+
+1
+degree_sequence = [d for n, d in config_model.degree()]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+sum(degree_sequence)
+
+
+
+
+
+16512
+
+
+
+
+
+
+
+
+
+
+
+1
+sys.stdout = open("test.txt", "w")
+2
+​
+3
+sys.stdout.close()
+4
+​
+
+
+
+
+
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+/var/folders/39/0sg9zjr12g340f9345zz8x500000gn/T/ipykernel_7607/4092000745.py in <module>
+----> 1 sys.stdout = open("test.txt", "w")
+      2 
+      3 sys.stdout.close()
+
+NameError: name 'sys' is not defined
+
+
+
+
+
+
+
+
+
+
+1
+import sys
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+sys.stdout = open("test.txt", "w")
+2
+​
+3
+sys.stdout.close()
+4
+​
