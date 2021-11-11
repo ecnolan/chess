@@ -83,6 +83,27 @@ win_rate = np.choose(elo_filtered['weight'], [elo_filtered['Source'], elo_filter
 elo_list = pd.read_csv('playerelo.csv')
 
 
-# print("Year assortativity:", nx.attribute_assortativity_coefficient(student_graph, "year"))
+nx.set_node_attributes(g, elo_list, "elo")
 
-# print("Modularity by year:", nx_comm.modularity(student_graph, communities))
+elo_list = elo_list.replace(['?','#N/A'],2000) 
+
+
+print("Year assortativity:", nx.attribute_assortativity_coefficient(g))
+
+print("Modularity by year:", nx_comm.modularity(student_graph, communities))
+
+
+# rand = open("rand_data.csv", "w+")
+# rand = open("rand_data.csv", "a", newline = "")
+# writer = csv.writer(rand)
+
+
+# for x in range(1379):
+#     for y in range(x, 1379):
+#         edge_weight = rand_adj[x,y]
+#         if edge_weight > 0:
+#             writer.writerow((x, y, edge_weight))
+            
+    
+# degree_sequence = [d for n, d in g.degree()]
+# config_model = nx.configuration_model(degree_sequence)
