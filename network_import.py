@@ -111,5 +111,7 @@ average_degree = sum(degree_sequence)/len(degree_sequence)
 print(f'average degree of node in graph = {sum(degree_sequence)/len(degree_sequence)}')
 
 print(f'graph transitivity (undirected) = {alg.cluster.transitivity(g_udir)}')
-print(f'graph transitivity (directed) = {alg.cluster.transitivity(g)}')
 print(f'graph clique number (undirected) = {alg.clique.graph_clique_number(g_udir)}')
+
+
+mod_comm = alg.community.modularity_max.greedy_modularity_communities(g)
