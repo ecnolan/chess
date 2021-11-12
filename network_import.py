@@ -106,8 +106,10 @@ triangles = nx.triangles(g_udir)
 
 # Centralities and shit
 
-# print("clique number: ", nx.graph_clique_number(g))
-
 average_degree = sum(degree_sequence)/len(degree_sequence)
 
-# print 'average degree = '
+print(f'average degree of node in graph = {sum(degree_sequence)/len(degree_sequence)}')
+
+print(f'graph transitivity (undirected) = {alg.cluster.transitivity(g_udir)}')
+print(f'graph transitivity (directed) = {alg.cluster.transitivity(g)}')
+print(f'graph clique number (undirected) = {alg.clique.graph_clique_number(g_udir)}')
