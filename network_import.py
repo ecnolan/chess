@@ -9,8 +9,8 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 # Import dataset and clear missing elo values
 data = pd.read_csv('chess-data2.csv',low_memory=False)
-data['WhiteElo'] = data['WhiteElo'].replace(['?'],0) 
-data['BlackElo'] = data['BlackElo'].replace(['?'],0) 
+data['WhiteElo'] = data['WhiteElo'].replace(['?'],0)
+data['BlackElo'] = data['BlackElo'].replace(['?'],0)
 
 
 # Change values to float from string
@@ -26,7 +26,7 @@ game_filtered = elo[~elo["Event"].str.contains("https")]
 vars = {'Event','Source','Target','Result'}
 elo_filtered = game_filtered[vars]
 
-# Creating new column with boolean value for (white = winner). I see how I can make 
+# Creating new column with boolean value for (white = winner). I see how I can make
 # this shorter but I can't be bothered to do it right now.
 elo_filtered['weight'] = (elo_filtered['Result'] == '1-0').astype(int)
 elo_filtered = elo_filtered.drop(columns=['Result'])
@@ -71,7 +71,7 @@ elo_list = pd.read_csv('playerelo.csv')
 
 nx.set_node_attributes(g, elo_list, "elo")
 
-elo_list = elo_list.replace(['?','#N/A'],2000) 
+elo_list = elo_list.replace(['?','#N/A'],2000)
 
 
 # print("Year assortativity:", nx.attribute_assortativity_coefficient(g,elo))
@@ -89,8 +89,8 @@ elo_list = elo_list.replace(['?','#N/A'],2000)
 #         edge_weight = rand_adj[x,y]
 #         if edge_weight > 0:
 #             writer.writerow((x, y, edge_weight))
-            
-    
+
+
 degree_sequence = [d for n, d in g.degree()]
 config_model = nx.configuration_model(degree_sequence)
 
@@ -100,7 +100,7 @@ nx.set_node_attributes(g_udir, elo_list, "elo")
 
 triangles = nx.triangles(g_udir)
 
-# Fixing the stupid mistake we made 
+# Fixing the stupid mistake we made
 # nx.readwrite.gexf.write_gexf(g, 'new_adj.gexf')
 
 
@@ -113,5 +113,25 @@ print(f'average degree of node in graph = {sum(degree_sequence)/len(degree_seque
 print(f'graph transitivity (undirected) = {alg.cluster.transitivity(g_udir)}')
 print(f'graph clique number (undirected) = {alg.clique.graph_clique_number(g_udir)}')
 
+#get communities' node lists. Save then in dictionary
+COMMDICT = {}
+def getcommunities(g):
+    print("getting communities ... ")
+    mod_comm = alg.community.modularity_max.greedy_modularity_communities(g)
+    print("sorting communities in dictionary ...")
+    for x in range(len(mod_comm)):
+        COMMDICT[str(x)] = []
+        # community = mod_comm[x]
+        for member in mod_comm[x]:
+            COMMDICT[str(x)].append(member)
 
-mod_comm = alg.community.modularity_max.greedy_modularity_communities(g)
+    comm_file = open("node-comms.csv", "w+")
+    commfile = open("node-comms.csv", "a", newline = "")
+    writer = csv.writer(comm_file)
+    writer.writerow(("ID", "Community"))
+    for key in COMMDICT.keys():
+        for player in COMMDICT[key]:
+            writer.writerow((player, key))
+    comm_file.close()
+
+getcommunities(g)
