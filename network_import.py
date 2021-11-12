@@ -2,6 +2,7 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 import csv
+import networkx.algorithms as alg
 
 # Lol I forgot what this was
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -34,15 +35,15 @@ elo_filtered = elo_filtered.drop(columns=['index'])
 
 # Create graph and adjacency matrix in NetworkX
 g = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='Source',target='Target',create_using=nx.DiGraph)
-adj = nx.adjacency_matrix(g)
-
+g_multi = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='Source',target='Target',create_using=nx.MultiGraph)
 
 
 # Different dataframes for different game types
-bullet_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Bullet game')]
-blitz_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Blitz game')]
-class_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Classical game')]
-corr_df = elo_filtered[elo_filtered["Event"].str.contains('Rated Correspondence game')]
+bullet_df = pd.read_csv('Bullet-data.csv',low_memory=False)
+class_df = pd.read_csv('Classical-data.csv',low_memory=False)
+corr_df = pd.read_csv('Correspondence-data.csv',low_memory=False)
+blitz_df = pd.read_csv('Blitz-data.csv',low_memory=False)
+tour_df = pd.read_csv('tournament-data.csv',low_memory=False)
 
 
 
@@ -53,26 +54,11 @@ degree_sort.head(10)
 
 
 # Different graphs for different game types
-bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='Source',target='Target',create_using=nx.DiGraph)
-blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='Source',target='Target',create_using=nx.DiGraph)
-class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='Source',target='Target',create_using=nx.DiGraph)
-corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='Source',target='Target',create_using=nx.DiGraph)
-
-
-
-# Write CSV files for Gephi
-bullet_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
-blitz_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
-class_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
-corr_df = bullet_df.rename(columns={'Source': 'Source', 'Target': 'Target'})
-
-
-bullet_df[["Source","Target","weight"]].to_csv('bullet.csv', index = False)
-blitz_df[["Source","Target","weight"]].to_csv('blitz.csv', index = False)
-class_df[["Source","Target","weight"]].to_csv('class.csv', index = False)
-corr_df[["Source","Target","weight"]].to_csv('corr.csv', index = False)
-
-
+bullet_g = nx.convert_matrix.from_pandas_edgelist(bullet_df, source='Source',target='Target',create_using=nx.MultiGraph)
+blitz_g = nx.convert_matrix.from_pandas_edgelist(blitz_df, source='Source',target='Target',create_using=nx.MultiGraph)
+class_g = nx.convert_matrix.from_pandas_edgelist(class_df, source='Source',target='Target',create_using=nx.MultiGraph)
+corr_g = nx.convert_matrix.from_pandas_edgelist(corr_df, source='Source',target='Target',create_using=nx.MultiGraph)
+tour_g = nx.convert_matrix.from_pandas_edgelist(tour_df, source='Source',target='Target',create_using=nx.MultiGraph)
 
 
 # Valentin's playground
@@ -88,9 +74,9 @@ nx.set_node_attributes(g, elo_list, "elo")
 elo_list = elo_list.replace(['?','#N/A'],2000) 
 
 
-print("Year assortativity:", nx.attribute_assortativity_coefficient(g))
+# print("Year assortativity:", nx.attribute_assortativity_coefficient(g,elo))
 
-print("Modularity by year:", nx_comm.modularity(student_graph, communities))
+# print("Modularity by year:", nx_comm.modularity(g, communities))
 
 
 # rand = open("rand_data.csv", "w+")
@@ -105,5 +91,23 @@ print("Modularity by year:", nx_comm.modularity(student_graph, communities))
 #             writer.writerow((x, y, edge_weight))
             
     
-# degree_sequence = [d for n, d in g.degree()]
-# config_model = nx.configuration_model(degree_sequence)
+degree_sequence = [d for n, d in g.degree()]
+config_model = nx.configuration_model(degree_sequence)
+
+# Create undirected graph to get num triangles
+g_udir = nx.convert_matrix.from_pandas_edgelist(elo_filtered, source='Source',target='Target')
+nx.set_node_attributes(g_udir, elo_list, "elo")
+
+triangles = nx.triangles(g_udir)
+
+# Fixing the stupid mistake we made 
+# nx.readwrite.gexf.write_gexf(g, 'new_adj.gexf')
+
+
+# Centralities and shit
+
+# print("clique number: ", nx.graph_clique_number(g))
+
+average_degree = sum(degree_sequence)/len(degree_sequence)
+
+# print 'average degree = '
