@@ -10,3 +10,5 @@ Save pgn format game data as 'chessdata.pgn'
 Run chess-v1.py
 Output will be a csv titled 'chess-data.csv' saved to the working directory. 
 
+Many other files in repository were for rudimentary testing. 
+Not all testing files were written by me, but by classmates, hence the inconsistency in coding style.
